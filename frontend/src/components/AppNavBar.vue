@@ -15,6 +15,12 @@
       <router-link to="/evacuation-centers" class="text-slate-600 hover:text-blue-600">
         Evacuation Centers
       </router-link>
+      <router-link to="/announcements" class="text-slate-600 hover:text-blue-600">
+        Announcements
+      </router-link>
+      <router-link v-if="canViewSmsBroadcasts" to="/sms-notifications" class="text-slate-600 hover:text-blue-600">
+        SMS Broadcasts
+      </router-link>
       <router-link to="/profile" class="text-slate-600 hover:text-blue-600">Profile</router-link>
       <button @click="handleLogout" class="text-red-600 hover:text-red-700">Logout</button>
     </div>
@@ -44,6 +50,17 @@ const canViewVulnerabilityDashboard = computed(() => {
   const role = authStore.user?.role
   return [
     'Barangay Secretary',
+    'Barangay Kagawad/Tanod',
+    'Barangay Healthworker',
+    'MDRRMO Officer',
+  ].includes(role)
+})
+
+const canViewSmsBroadcasts = computed(() => {
+  const role = authStore.user?.role
+  return [
+    'Barangay Secretary',
+    'BDRRMC Chairperson',
     'Barangay Kagawad/Tanod',
     'Barangay Healthworker',
     'MDRRMO Officer',

@@ -11,6 +11,9 @@ import HouseholdDashboardView from '@/views/households/HouseholdDashboardView.vu
 import EvacuationCenterListView from '@/views/evacuation-centers/EvacuationCenterListView.vue'
 import EvacuationCenterFormView from '@/views/evacuation-centers/EvacuationCenterFormView.vue'
 import EvacuationCenterDetailView from '@/views/evacuation-centers/EvacuationCenterDetailView.vue'
+import AnnouncementListView from '@/views/announcements/AnnouncementListView.vue'
+import AnnouncementFormView from '@/views/announcements/AnnouncementFormView.vue'
+import SmsNotificationListView from '@/views/announcements/SmsNotificationListView.vue'
 
 const routes = [
   {
@@ -83,6 +86,30 @@ const routes = [
     path: '/evacuation-centers/:id',
     name: 'evacuation-center-detail',
     component: EvacuationCenterDetailView,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/announcements',
+    name: 'announcements',
+    component: AnnouncementListView,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/announcements/new',
+    name: 'announcement-new',
+    component: AnnouncementFormView,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/announcements/:id/edit',
+    name: 'announcement-edit',
+    component: AnnouncementFormView,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/sms-notifications',
+    name: 'sms-notifications',
+    component: SmsNotificationListView,
     meta: { requiresAuth: true },
   },
 ]
