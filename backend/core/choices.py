@@ -1,3 +1,4 @@
+# backend/core/choices.py
 from django.db import models
 
 
@@ -108,6 +109,7 @@ class DeliveryStatus(models.TextChoices):
     DELIVERED = 'Delivered', 'Delivered'
     FAILED = 'Failed', 'Failed'
     PENDING = 'Pending', 'Pending'
+    SIMULATED = 'Simulated', 'Simulated'  # SMS_DRY_RUN sends land here, never a real Semaphore call
 
 
 class AuditAction(models.TextChoices):

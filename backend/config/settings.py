@@ -129,3 +129,11 @@ AXES_FAILURE_LIMIT = 5
 AXES_COOLDOWN_TIME = 1  # hours
 AXES_LOCKOUT_PARAMETERS = ['username', 'ip_address']
 AXES_RESET_COOL_OFF_ON_FAILURE_DURING_LOCKOUT = False
+
+# SMS gateway (Semaphore — semaphore.co). SMS_DRY_RUN defaults to True so the
+# app is safe to run with no credentials at all — nothing gets sent, nothing
+# gets spent, until this is explicitly set to False in .env once real
+# credentials exist. Switching to live sending is then just an env var
+# change, not a code change.
+SMS_DRY_RUN = config('SMS_DRY_RUN', default=True, cast=bool)
+SEMAPHORE_API_KEY = config('SEMAPHORE_API_KEY', default='')
