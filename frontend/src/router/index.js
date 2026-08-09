@@ -14,6 +14,8 @@ import EvacuationCenterDetailView from '@/views/evacuation-centers/EvacuationCen
 import AnnouncementListView from '@/views/announcements/AnnouncementListView.vue'
 import AnnouncementFormView from '@/views/announcements/AnnouncementFormView.vue'
 import SmsNotificationListView from '@/views/announcements/SmsNotificationListView.vue'
+import HazardMapListView from '@/views/maps/HazardMapListView.vue'
+import HazardMapFormView from '@/views/maps/HazardMapFormView.vue'
 
 const routes = [
   {
@@ -110,6 +112,24 @@ const routes = [
     path: '/sms-notifications',
     name: 'sms-notifications',
     component: SmsNotificationListView,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/hazard-maps',
+    name: 'hazard-maps',
+    component: HazardMapListView,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/hazard-maps/new',
+    name: 'hazard-map-new',
+    component: HazardMapFormView,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/hazard-maps/:id/edit',
+    name: 'hazard-map-edit',
+    component: HazardMapFormView,
     meta: { requiresAuth: true },
   },
 ]
