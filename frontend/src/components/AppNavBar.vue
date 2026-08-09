@@ -24,6 +24,9 @@
       <router-link to="/hazard-maps" class="text-slate-600 hover:text-blue-600">
         Hazard Maps
       </router-link>
+      <router-link v-if="canViewReports" to="/reports" class="text-slate-600 hover:text-blue-600">
+        Reports
+      </router-link>
       <router-link to="/profile" class="text-slate-600 hover:text-blue-600">Profile</router-link>
       <button @click="handleLogout" class="text-red-600 hover:text-red-700">Logout</button>
     </div>
@@ -67,6 +70,18 @@ const canViewSmsBroadcasts = computed(() => {
     'Barangay Kagawad/Tanod',
     'Barangay Healthworker',
     'MDRRMO Officer',
+  ].includes(role)
+})
+
+const canViewReports = computed(() => {
+  const role = authStore.user?.role
+  return [
+    'Barangay Secretary',
+    'Barangay Kagawad/Tanod',
+    'Barangay Healthworker',
+    'BDRRMC Chairperson',
+    'MDRRMO Officer',
+    'Resident',
   ].includes(role)
 })
 
