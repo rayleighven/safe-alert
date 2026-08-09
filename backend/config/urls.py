@@ -9,4 +9,5 @@ urlpatterns = [
     path('api/', include('evacuation_centers.urls')),
     path('api/', include('announcements.urls')),
     path('api/', include('maps.urls')),
+    path('api/reports/', include('reports.urls')),
 ]
