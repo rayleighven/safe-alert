@@ -1,4 +1,3 @@
-// frontend/src/services/api.js
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
 
@@ -26,13 +25,29 @@ function onTokenRefreshed(newToken) {
   refreshSubscribers = []
 }
 
+// Requests to these endpoints should never trigger the refresh-retry flow —
+// a 401 here means bad credentials or an invalid/expired refresh token,
+// not an expired access token, so retrying with a "refreshed" token makes
+// no sense and previously caused a hard redirect loop on a simple wrong
+// password at login.
+const AUTH_ENDPOINTS = ['/auth/login/', '/auth/login/refresh/']
+
+function isAuthEndpoint(url) {
+  return AUTH_ENDPOINTS.some((endpoint) => url && url.includes(endpoint))
+}
+
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const authStore = useAuthStore()
     const originalRequest = error.config
 
-    if (error.response && error.response.status === 401 && !originalRequest._retry) {
+    if (
+      error.response &&
+      error.response.status === 401 &&
+      !originalRequest._retry &&
+      !isAuthEndpoint(originalRequest.url)
+    ) {
       if (isRefreshing) {
         return new Promise((resolve) => {
           subscribeTokenRefresh((newToken) => {
