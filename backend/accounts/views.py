@@ -1,3 +1,8 @@
+from datetime import timedelta
+
+from django.conf import settings
+from django.db.models import Sum
+from django.utils import timezone
 from rest_framework import generics, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -7,8 +12,9 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
+from axes.models import AccessAttempt
 from core.choices import AuditAction
-from core.utils import write_audit_log
+from core.utils import get_client_ip, write_audit_log
 
 from .models import User
 from .permissions import IsBarangaySecretary
@@ -21,13 +27,59 @@ from .serializers import (
 )
 
 
+def _is_locked_out(username, ip_address):
+    """
+    Checks axes' own AccessAttempt table directly instead of going through
+    AxesProxyHandler/AxesBackend, whose exact API has shifted across axes
+    versions. Reading the table's own fields (username, ip_address,
+    failures_since_start, attempt_time) is stable regardless of version,
+    and lets LoginView return a clear 403 + message instead of relying on
+    axes' default silent fallthrough, which produces an identical generic
+    401 for both "wrong password" and "locked out" and can't be
+    distinguished by the frontend.
+    """
+    if not username:
+        return False
+
+    # Keep this explicit response in sync with django-axes. AXES_COOLOFF_TIME
+    # is the setting django-axes 8.x actually reads.
+    cooldown = getattr(settings, 'AXES_COOLOFF_TIME', timedelta(hours=1))
+    if not isinstance(cooldown, timedelta):
+        # AXES_COOLOFF_TIME can be configured as hours (int/float) in some
+        # setups — normalize to a timedelta either way so this check works
+        # regardless of how it's expressed in settings.
+        cooldown = timedelta(hours=cooldown)
+
+    failure_limit = getattr(settings, 'AXES_FAILURE_LIMIT', 3)
+    cutoff = timezone.now() - cooldown
+
+    failures = (
+        AccessAttempt.objects.filter(
+            username=username,
+            ip_address=ip_address,
+            attempt_time__gte=cutoff,
+        ).aggregate(total=Sum('failures_since_start'))['total']
+        or 0
+    )
+    return failures >= failure_limit
+
+
 class LoginView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
 
     def post(self, request, *args, **kwargs):
+        username = request.data.get('username')
+        ip_address = get_client_ip(request)
+
+        if _is_locked_out(username, ip_address):
+            return Response(
+                {'detail': 'Maximum attempts tried. Try again in 1 minute.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         response = super().post(request, *args, **kwargs)
+
         if response.status_code == 200:
-            username = request.data.get('username')
             try:
                 user = User.objects.get(username=username)
                 write_audit_log(
@@ -39,6 +91,7 @@ class LoginView(TokenObtainPairView):
                 )
             except User.DoesNotExist:
                 pass
+
         return response
 
 

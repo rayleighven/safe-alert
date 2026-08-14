@@ -1,11 +1,14 @@
 from datetime import timedelta
 from pathlib import Path
+
 from decouple import config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = config('DJANGO_SECRET_KEY')
+
 DEBUG = config('DJANGO_DEBUG', default=False, cast=bool)
+
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 INSTALLED_APPS = [
@@ -15,13 +18,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'axes',
-
     'core',
     'accounts',
     'households',
@@ -94,7 +95,6 @@ AUTH_USER_MODEL = 'accounts.User'
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",  # Vite dev server default
 ]
-
 CORS_ALLOW_CREDENTIALS = True
 
 AUTHENTICATION_BACKENDS = [
@@ -121,13 +121,17 @@ SIMPLE_JWT = {
     'USER_ID_CLAIM': 'user_id',
 }
 
-# django-axes: lock an account/IP after 5 failed login attempts.
+# django-axes: lock an account/IP after 3 failed login attempts, 1-minute cooldown.
 # Field personnel (Kagawad/Tanod) may need urgent access during an active
 # disaster, so we do NOT rely on cooldown alone — an admin can unlock early
 # via `python manage.py axes_reset` or the Django admin's "Access attempts" panel.
-AXES_FAILURE_LIMIT = 5
-AXES_COOLDOWN_TIME = 1  # hours
-AXES_LOCKOUT_PARAMETERS = ['username', 'ip_address']
+AXES_ENABLED = True
+AXES_FAILURE_LIMIT = 3
+# django-axes 8.x reads AXES_COOLOFF_TIME (not AXES_COOLDOWN_TIME).
+# A nested list uses the username/IP combination as the lockout key; a flat
+# list creates separate username-only and IP-only lockout keys.
+AXES_COOLOFF_TIME = timedelta(minutes=1)
+AXES_LOCKOUT_PARAMETERS = [['username', 'ip_address']]
 AXES_RESET_COOL_OFF_ON_FAILURE_DURING_LOCKOUT = False
 
 # SMS gateway (Semaphore — semaphore.co). SMS_DRY_RUN defaults to True so the

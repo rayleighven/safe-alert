@@ -3,7 +3,7 @@ from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from core.choices import UserRole, UserStatus
-
+from core.models import Barangay
 from .models import User, UserAddress
 
 
@@ -99,6 +99,12 @@ class UserAdminSerializer(serializers.ModelSerializer):
     Full account management serializer for the Barangay Secretary:
     create/edit any user's role, barangay assignment, and status.
     """
+    barangay = serializers.SlugRelatedField(
+        slug_field='name',
+        queryset=Barangay.objects.all(),
+        required=False,
+        allow_null=True,
+    )
     password = serializers.CharField(write_only=True, required=False, allow_blank=False)
 
     class Meta:
@@ -116,6 +122,7 @@ class UserAdminSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         role = attrs.get('role', getattr(self.instance, 'role', None))
+
         if 'barangay' in attrs:
             barangay = attrs['barangay']
         elif self.instance:
@@ -133,6 +140,7 @@ class UserAdminSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({
                     'barangay': 'This role must be tied to a specific barangay — every account except MDRRMO Officer requires one.'
                 })
+
         return attrs
 
     def create(self, validated_data):
@@ -181,7 +189,6 @@ class CreateResidentAccountSerializer(serializers.Serializer):
         # Imported here (not at module level) to avoid accounts/households
         # ever forming a circular import — same pattern as core/utils.py.
         from households.models import Household
-
         try:
             household = Household.objects.get(pk=value, is_archived=False)
         except Household.DoesNotExist:
@@ -195,7 +202,6 @@ class CreateResidentAccountSerializer(serializers.Serializer):
         household = self._household
         password = validated_data.pop('password')
         validated_data.pop('household_id')
-
         user = User(
             role=UserRole.RESIDENT,
             barangay=household.barangay,
@@ -204,8 +210,6 @@ class CreateResidentAccountSerializer(serializers.Serializer):
         )
         user.set_password(password)
         user.save()
-
         household.resident_user = user
         household.save(update_fields=['resident_user'])
-
         return user
