@@ -10,7 +10,7 @@
 
     <nav class="flex-1 overflow-y-auto px-3 py-5">
       <p class="nav-section">Overview</p>
-      <router-link to="/" class="nav-link" active-class="nav-link-active">
+      <router-link :to="{ name: 'dashboard' }" class="nav-link" active-class="nav-link-active">
         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M3 11.5 12 4l9 7.5v8a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1v-8Z" /></svg>
         <span>Dashboard</span>
       </router-link>

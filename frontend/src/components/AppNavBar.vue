@@ -2,7 +2,7 @@
   <nav v-if="standalone" class="relative z-20 bg-white shadow-sm">
     <div class="flex items-center justify-between px-6 py-4">
       <div>
-        <router-link to="/" class="text-lg font-bold text-slate-800 hover:text-blue-600" @click="closeMenu">
+        <router-link :to="{ name: 'dashboard' }" class="text-lg font-bold text-slate-800 hover:text-blue-600" @click="closeMenu">
           SAFE-ALERT
         </router-link>
         <p class="text-xs text-slate-500">{{ authStore.user?.role }}</p>
@@ -28,7 +28,7 @@
       class="absolute right-6 top-full mt-2 w-64 overflow-hidden rounded-xl border border-slate-200 bg-white py-2 shadow-lg"
     >
       <div class="flex flex-col text-sm">
-        <router-link to="/" class="menu-link" @click="closeMenu">Dashboard</router-link>
+        <router-link :to="{ name: 'dashboard' }" class="menu-link" @click="closeMenu">Dashboard</router-link>
         <router-link v-if="canViewHouseholds" to="/households" class="menu-link" @click="closeMenu">Households</router-link>
         <router-link v-if="canViewVulnerabilityDashboard" to="/households/dashboard" class="menu-link" @click="closeMenu">
           Vulnerability Dashboard

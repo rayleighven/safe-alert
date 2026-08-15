@@ -1,7 +1,7 @@
 import api from './api'
 
-export function login(username, password) {
-  return api.post('/auth/login/', { username, password })
+export function login(username, password, accessArea = null) {
+  return api.post('/auth/login/', { username, password, ...(accessArea ? { access_area: accessArea } : {}) })
 }
 
 export function refreshToken(refresh) {

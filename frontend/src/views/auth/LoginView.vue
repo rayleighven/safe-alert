@@ -38,7 +38,8 @@
             </span>
           </div>
           <h2 class="mt-5 text-3xl font-bold text-slate-900">Sign In</h2>
-          <p class="mt-3 text-sm leading-relaxed text-slate-500">Use your authorized Barangay-issued account to continue.</p>
+          <p class="mt-3 text-sm leading-relaxed text-slate-500">{{ accessLabel ? `Signing in for ${accessLabel}.` : 'Use your authorized Barangay-issued account to continue.' }}</p>
+          <router-link :to="{ name: 'access-select' }" class="mt-2 inline-block text-sm font-medium text-blue-600 hover:text-blue-700">Change area</router-link>
         </div>
 
         <form @submit.prevent="handleLogin" class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
@@ -107,7 +108,7 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import churchBackground from '@/assets/images/baclayonchurch.jpg'
 import safeAlertLogo from '@/assets/images/safe-alert-logo.png'
@@ -126,6 +127,9 @@ let countdownTimer = null
 
 const authStore = useAuthStore()
 const router = useRouter()
+const route = useRoute()
+const selectedAccess = computed(() => route.query.access || '')
+const accessLabel = computed(() => selectedAccess.value === 'MDRRMO' ? 'MDRRMO' : selectedAccess.value ? `Barangay ${selectedAccess.value}` : '')
 
 const isLockedOut = computed(() => (
   remainingSeconds.value > 0
@@ -197,7 +201,7 @@ async function handleLogin() {
   errorMessage.value = ''
   isLoading.value = true
   try {
-    await authStore.login(username.value, password.value)
+    await authStore.login(username.value, password.value, selectedAccess.value)
     router.push({ name: 'dashboard' })
   } catch (error) {
     if (error.response) {

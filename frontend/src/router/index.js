@@ -2,6 +2,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 import LoginView from '@/views/auth/LoginView.vue'
+import LandingView from '@/views/auth/LandingView.vue'
+import AccessSelectionView from '@/views/auth/AccessSelectionView.vue'
 import ProfileView from '@/views/auth/ProfileView.vue'
 import AccountsView from '@/views/auth/AccountsView.vue'
 import DashboardView from '@/views/DashboardView.vue'
@@ -25,6 +27,8 @@ import HazardMapFormView from '@/views/maps/HazardMapFormView.vue'
 import ReportsView from '@/views/reports/ReportsView.vue'
 
 const routes = [
+  { path: '/', name: 'landing', component: LandingView, meta: { requiresAuth: false } },
+  { path: '/sign-in', name: 'access-select', component: AccessSelectionView, meta: { requiresAuth: false } },
   {
     path: '/login',
     name: 'login',
@@ -32,7 +36,7 @@ const routes = [
     meta: { requiresAuth: false },
   },
   {
-    path: '/',
+    path: '/dashboard',
     name: 'dashboard',
     component: DashboardView,
     meta: { requiresAuth: true },
@@ -162,8 +166,10 @@ router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     next({ name: 'login' })
-  } else if (to.name === 'login' && authStore.isAuthenticated) {
+  } else if (['landing', 'access-select', 'login'].includes(to.name) && authStore.isAuthenticated) {
     next({ name: 'dashboard' })
+  } else if (to.name === 'login' && !to.query.access) {
+    next({ name: 'access-select' })
   } else {
     next()
   }

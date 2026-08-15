@@ -14,8 +14,8 @@ export const useAuthStore = defineStore('auth', {
   },
 
   actions: {
-    async login(username, password) {
-      const response = await authApi.login(username, password)
+    async login(username, password, accessArea = null) {
+      const response = await authApi.login(username, password, accessArea)
       this.setSession(response.data.access, response.data.refresh, response.data.user)
       return response.data.user
     },
