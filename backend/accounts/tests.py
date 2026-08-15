@@ -88,6 +88,15 @@ class LoginLockoutTests(TestCase):
             'Correct-Horse-Battery-Staple-456!',
         )
 
+    def test_login_rejects_a_barangay_that_does_not_match_the_account(self):
+        response = self.client.post(self.login_url, {
+            'username': self.user.username,
+            'password': 'Correct-Horse-Battery-Staple-123!',
+            'access_area': 'Cambanac',
+        })
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('access_area', response.json())
+
 
 class BarangayAccountScopeTests(TestCase):
     def setUp(self):

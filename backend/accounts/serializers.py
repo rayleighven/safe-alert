@@ -14,6 +14,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     - embed role, status, barangay_id, and user_id as extra claims in the token
     - return a compact user object alongside the tokens for the frontend to store
     """
+    access_area = serializers.CharField(write_only=True, required=False)
 
     @classmethod
     def get_token(cls, user):
@@ -36,6 +37,14 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             raise serializers.ValidationError(
                 'This account is not active. Contact your Barangay Secretary for assistance.'
             )
+
+        access_area = attrs.get('access_area')
+        if access_area == 'MDRRMO':
+            if self.user.role != UserRole.MDRRMO_OFFICER:
+                raise serializers.ValidationError({'access_area': 'This account is not an MDRRMO account.'})
+        elif access_area in {'Cambanac', 'Poblacion'}:
+            if not self.user.barangay or self.user.barangay.name.casefold() != access_area.casefold():
+                raise serializers.ValidationError({'access_area': 'This account is not registered under the selected barangay.'})
 
         data['user'] = {
             'user_id': str(self.user.user_id),
@@ -247,3 +256,4 @@ class CreateResidentAccountSerializer(serializers.Serializer):
         household.resident_user = user
         household.save(update_fields=['resident_user'])
         return user
+    access_area = serializers.CharField(write_only=True, required=False)

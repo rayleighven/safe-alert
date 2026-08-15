@@ -1,154 +1,25 @@
 <template>
-  <div class="min-h-screen bg-slate-50">
-    <AppNavBar />
-    <main class="p-6 max-w-2xl mx-auto">
-      <h1 class="text-2xl font-bold text-slate-800 mb-6">
-        {{ isEditMode ? 'Edit Household' : 'New Household' }}
-      </h1>
-
-      <form @submit.prevent="handleSubmit" class="space-y-4 bg-white rounded-xl shadow-sm p-6">
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Household Number</label>
-          <input
-            v-model="form.household_number"
-            type="text"
-            required
-            class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Head of Family</label>
-          <input
-            v-model="form.head_of_family"
-            type="text"
-            required
-            class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Contact Number</label>
-            <input
-              v-model="form.contact_number"
-              type="text"
-              required
-              class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-slate-700 mb-1">Purok</label>
-            <input
-              v-model="form.purok"
-              type="text"
-              required
-              class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Address</label>
-          <textarea
-            v-model="form.address"
-            required
-            rows="2"
-            class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          ></textarea>
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Total Members</label>
-          <input
-            v-model.number="form.total_members"
-            type="number"
-            min="0"
-            required
-            class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-
-        <p v-if="errorMessage" class="text-sm text-red-600">{{ errorMessage }}</p>
-
-        <div class="flex gap-3">
-          <button
-            type="submit"
-            :disabled="isSaving"
-            class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-medium rounded-lg px-4 py-2"
-          >
-            {{ isSaving ? 'Saving...' : isEditMode ? 'Save Changes' : 'Create Household' }}
-          </button>
-          <router-link
-            to="/households"
-            class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium rounded-lg px-4 py-2"
-          >
-            Cancel
-          </router-link>
-        </div>
-      </form>
-    </main>
+  <div class="mx-auto max-w-5xl p-6">
+    <div class="mb-6"><p class="text-sm text-slate-500">Household Records / {{ isEditMode ? 'Edit' : 'New Household' }}</p><h1 class="mt-1 text-2xl font-bold text-slate-800">{{ isEditMode ? 'Edit Household' : 'Register a Household' }}</h1><p v-if="!isEditMode" class="mt-1 text-sm text-slate-500">Add the head of family and every household member below.</p></div>
+    <form class="space-y-6" @submit.prevent="handleSubmit">
+      <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><h2 class="text-lg font-bold text-slate-800">Household details</h2><div class="mt-5 grid gap-4 sm:grid-cols-2"><div><label class="form-label">Household number</label><input v-model="form.household_number" required class="form-input" /></div><div><label class="form-label">Contact number</label><input v-model="form.contact_number" required class="form-input" /></div><div><label class="form-label">Purok</label><input v-model="form.purok" required class="form-input" /></div><div><label class="form-label">Total members</label><input :value="isEditMode ? form.total_members : members.length" readonly class="form-input bg-slate-50 text-slate-500" /></div><div class="sm:col-span-2"><label class="form-label">Address</label><textarea v-model="form.address" required rows="2" class="form-input" /></div><div v-if="isEditMode" class="sm:col-span-2"><label class="form-label">Head of family</label><input v-model="form.head_of_family" required class="form-input" /></div></div></section>
+      <section v-if="!isEditMode" class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><div class="flex flex-wrap items-start justify-between gap-3"><div><h2 class="text-lg font-bold text-slate-800">Family members</h2><p class="mt-1 text-sm text-slate-500">The first entry is the head of family.</p></div><button type="button" class="rounded-lg bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 hover:bg-blue-100" @click="addMember">+ Add family member</button></div><div class="mt-5 space-y-5"><article v-for="(member, index) in members" :key="member.key" class="rounded-xl border border-slate-200 p-5"><div class="mb-4 flex items-center justify-between gap-3"><h3 class="font-semibold text-slate-800">{{ index === 0 ? 'Head of Family' : `Family Member ${index + 1}` }}</h3><button v-if="index > 0" type="button" class="text-sm font-semibold text-red-600 hover:text-red-700" @click="removeMember(index)">Remove</button></div><div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"><div class="lg:col-span-2"><label class="form-label">Full name</label><input v-model="member.full_name" required class="form-input" /></div><div><label class="form-label">Relationship</label><input v-model="member.relationship" :readonly="index === 0" required class="form-input" /></div><div><label class="form-label">Birthday</label><input v-model="member.birth_date" type="date" required class="form-input" /></div><div><label class="form-label">Age</label><input v-model.number="member.age" type="number" min="0" required class="form-input" /></div><div><label class="form-label">Sex</label><select v-model="member.sex" required class="form-input"><option disabled value="">Select sex</option><option>Male</option><option>Female</option></select></div><div class="sm:col-span-2 lg:col-span-3"><label class="form-label">Occupation <span class="font-normal text-slate-400">(optional)</span></label><input v-model="member.occupation" class="form-input" /></div></div><div class="mt-4 grid gap-3 rounded-lg bg-slate-50 p-3 text-sm text-slate-700 sm:grid-cols-2 lg:grid-cols-4"><label class="flex items-center gap-2"><input v-model="member.is_senior_citizen" type="checkbox" /> Senior citizen</label><label class="flex items-center gap-2"><input v-model="member.is_pwd" type="checkbox" /> Person with disability</label><label class="flex items-center gap-2"><input v-model="member.is_pregnant" type="checkbox" /> Pregnant</label><label class="flex items-center gap-2"><input v-model="member.is_child" type="checkbox" /> Child</label></div></article></div></section>
+      <p v-if="errorMessage" class="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{{ errorMessage }}</p><div class="flex gap-3"><button type="submit" :disabled="isSaving" class="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300">{{ isSaving ? 'Saving...' : isEditMode ? 'Save Changes' : 'Create Household' }}</button><router-link to="/households" class="rounded-lg bg-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-300">Cancel</router-link></div>
+    </form>
   </div>
 </template>
-
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import AppNavBar from '@/components/AppNavBar.vue'
 import * as householdsApi from '@/services/householdsApi'
-
-const route = useRoute()
-const router = useRouter()
-
-const isEditMode = computed(() => !!route.params.id)
-const isSaving = ref(false)
-const errorMessage = ref('')
-
-const form = reactive({
-  household_number: '',
-  head_of_family: '',
-  contact_number: '',
-  address: '',
-  purok: '',
-  total_members: 1,
-})
-
-onMounted(async () => {
-  if (isEditMode.value) {
-    const response = await householdsApi.getHousehold(route.params.id)
-    Object.assign(form, {
-      household_number: response.data.household_number,
-      head_of_family: response.data.head_of_family,
-      contact_number: response.data.contact_number,
-      address: response.data.address,
-      purok: response.data.purok,
-      total_members: response.data.total_members,
-    })
-  }
-})
-
-async function handleSubmit() {
-  isSaving.value = true
-  errorMessage.value = ''
-  try {
-    if (isEditMode.value) {
-      await householdsApi.updateHousehold(route.params.id, form)
-      router.push({ name: 'household-detail', params: { id: route.params.id } })
-    } else {
-      const response = await householdsApi.createHousehold(form)
-      router.push({ name: 'household-detail', params: { id: response.data.household_id } })
-    }
-  } catch (error) {
-    const data = error.response?.data
-    if (data) {
-      errorMessage.value = Object.entries(data)
-        .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
-        .join(' | ')
-    } else {
-      errorMessage.value = 'Failed to save household. Please try again.'
-    }
-  } finally {
-    isSaving.value = false
-  }
-}
+const route = useRoute(); const router = useRouter(); const isEditMode = computed(() => !!route.params.id); const isSaving = ref(false); const errorMessage = ref('')
+function newMember(relationship = '') { return { key: crypto.randomUUID(), full_name: '', birth_date: '', age: null, sex: '', relationship, occupation: '', is_senior_citizen: false, is_pwd: false, is_pregnant: false, is_child: false } }
+const members = ref([newMember('Head of Family')]); const form = reactive({ household_number: '', head_of_family: '', contact_number: '', address: '', purok: '', total_members: 1 })
+function addMember() { members.value.push(newMember()) }; function removeMember(index) { members.value.splice(index, 1) }
+onMounted(async () => { if (!isEditMode.value) return; const response = await householdsApi.getHousehold(route.params.id); Object.assign(form, response.data) })
+async function handleSubmit() { isSaving.value = true; errorMessage.value = ''; try { if (isEditMode.value) { await householdsApi.updateHousehold(route.params.id, form); router.push({ name: 'household-detail', params: { id: route.params.id } }); return }; const payload = { ...form, head_of_family: members.value[0].full_name, total_members: members.value.length, members: members.value.map(({ key, ...member }) => member) }; const response = await householdsApi.createHousehold(payload); router.push({ name: 'household-detail', params: { id: response.data.household_id } }) } catch (error) { const data = error.response?.data; errorMessage.value = data ? Object.entries(data).map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`).join(' | ') : 'Failed to save household. Please try again.' } finally { isSaving.value = false } }
 </script>
+<style scoped>
+.form-label { @apply mb-1 block text-sm font-medium text-slate-700; }
+.form-input { @apply w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100; }
+</style>

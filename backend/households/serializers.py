@@ -7,7 +7,7 @@ class HouseholdMemberSerializer(serializers.ModelSerializer):
     class Meta:
         model = HouseholdMember
         fields = [
-            'member_id', 'full_name', 'age', 'sex', 'relationship',
+            'member_id', 'full_name', 'birth_date', 'age', 'sex', 'relationship', 'occupation',
             'is_senior_citizen', 'is_pwd', 'is_pregnant', 'is_child',
             'created_at', 'is_archived', 'archived_at',
         ]
@@ -39,7 +39,7 @@ class HouseholdListSerializer(serializers.ModelSerializer):
 
 
 class HouseholdDetailSerializer(serializers.ModelSerializer):
-    members = HouseholdMemberSerializer(many=True, read_only=True)
+    members = HouseholdMemberSerializer(many=True, required=False)
     vulnerability_indicators = VulnerabilityIndicatorSerializer(many=True, read_only=True)
     resident_account = serializers.SerializerMethodField()
 
@@ -62,6 +62,24 @@ class HouseholdDetailSerializer(serializers.ModelSerializer):
             'household_id', 'barangay', 'evacuation_priority', 'priority_score', 'encoded_by',
             'created_at', 'updated_at', 'is_archived', 'archived_at',
         ]
+
+    def create(self, validated_data):
+        members_data = validated_data.pop('members', [])
+        if not members_data:
+            raise serializers.ValidationError({'members': 'Add at least the head of the family.'})
+        validated_data['total_members'] = len(members_data)
+        household = Household.objects.create(**validated_data)
+        HouseholdMember.objects.bulk_create([
+            HouseholdMember(household=household, **member_data)
+            for member_data in members_data
+        ])
+        return household
+
+    def update(self, instance, validated_data):
+        # Member changes use the dedicated nested member endpoints. This keeps
+        # updates to existing household records explicit and auditable.
+        validated_data.pop('members', None)
+        return super().update(instance, validated_data)
 
     def get_resident_account(self, obj):
         if obj.resident_user_id:
