@@ -154,6 +154,12 @@ class UserAdminViewSet(viewsets.ModelViewSet):
     serializer_class = UserAdminSerializer
     permission_classes = [IsAuthenticated, IsBarangaySecretary]
 
+    def get_queryset(self):
+        """Never expose accounts outside the requesting secretary's barangay."""
+        if not self.request.user.barangay_id:
+            return User.objects.none()
+        return User.objects.filter(barangay_id=self.request.user.barangay_id).order_by('username')
+
     def perform_create(self, serializer):
         instance = serializer.save()
         write_audit_log(
@@ -223,7 +229,7 @@ class UserAdminViewSet(viewsets.ModelViewSet):
         same transaction, so it's never possible to end up with an orphaned
         Resident account with no household.
         """
-        serializer = CreateResidentAccountSerializer(data=request.data)
+        serializer = CreateResidentAccountSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         write_audit_log(

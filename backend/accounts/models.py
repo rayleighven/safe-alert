@@ -23,6 +23,7 @@ class UserManager(DjangoUserManager):
 
 class User(AbstractUser):
     user_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    avatar = models.ImageField(upload_to='profile_avatars/', blank=True, null=True)
     role = models.CharField(max_length=30, choices=UserRole.choices)
     barangay = models.ForeignKey(
         Barangay,

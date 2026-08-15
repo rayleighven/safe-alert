@@ -4,10 +4,12 @@ from axes.models import AccessAttempt
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
+from rest_framework.test import APIClient
 
 from core.choices import UserRole, UserStatus
 from core.models import Barangay
 
+from .models import User
 from .serializers import UserAdminSerializer
 
 
@@ -85,3 +87,64 @@ class LoginLockoutTests(TestCase):
             superuser,
             'Correct-Horse-Battery-Staple-456!',
         )
+
+
+class BarangayAccountScopeTests(TestCase):
+    def setUp(self):
+        self.cambanac = Barangay.objects.create(name='Cambanac', municipality='Baclayon', province='Bohol', contact_number='09171234567')
+        self.poblacion = Barangay.objects.create(name='Poblacion', municipality='Baclayon', province='Bohol', contact_number='09171234568')
+        self.secretary = self.create_user('cambanac_secretary', UserRole.BARANGAY_SECRETARY, self.cambanac)
+        self.local_user = self.create_user('cambanac_bhw', UserRole.BARANGAY_HEALTHWORKER, self.cambanac)
+        self.remote_user = self.create_user('poblacion_bhw', UserRole.BARANGAY_HEALTHWORKER, self.poblacion)
+        self.client = APIClient()
+        self.client.force_authenticate(self.secretary)
+
+    @staticmethod
+    def create_user(username, role, barangay):
+        return User.objects.create_user(
+            username=username,
+            password='Correct-Horse-Battery-Staple-123!',
+            role=role,
+            barangay=barangay,
+            status=UserStatus.ACTIVE,
+        )
+
+    def test_secretary_only_receives_accounts_from_own_barangay(self):
+        response = self.client.get(reverse('user-admin-list'))
+        self.assertEqual(response.status_code, 200)
+        usernames = {account['username'] for account in response.json()}
+        self.assertEqual(usernames, {'cambanac_secretary', 'cambanac_bhw'})
+
+    def test_secretary_cannot_retrieve_another_barangays_account(self):
+        response = self.client.get(reverse('user-admin-detail', args=[self.remote_user.user_id]))
+        self.assertEqual(response.status_code, 404)
+
+    def test_secretary_cannot_create_an_account_for_another_barangay(self):
+        response = self.client.post(reverse('user-admin-list'), {
+            'username': 'not_allowed',
+            'password': 'Correct-Horse-Battery-Staple-123!',
+            'role': UserRole.BARANGAY_HEALTHWORKER,
+            'barangay': self.poblacion.name,
+            'status': UserStatus.ACTIVE,
+        })
+        self.assertEqual(response.status_code, 400)
+
+    def test_secretary_can_create_an_account_in_own_barangay(self):
+        response = self.client.post(reverse('user-admin-list'), {
+            'username': 'new_cambanac_tanod',
+            'password': 'Correct-Horse-Battery-Staple-123!',
+            'role': UserRole.BARANGAY_KAGAWAD_TANOD,
+            'status': UserStatus.ACTIVE,
+        })
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json()['barangay'], self.cambanac.name)
+
+    def test_secretary_can_change_a_local_accounts_status(self):
+        response = self.client.patch(
+            reverse('user-admin-detail', args=[self.local_user.user_id]),
+            {'status': UserStatus.INACTIVE},
+            format='json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.local_user.refresh_from_db()
+        self.assertEqual(self.local_user.status, UserStatus.INACTIVE)

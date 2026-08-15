@@ -1,5 +1,7 @@
 # backend/config/urls.py
 from django.contrib import admin
+from django.conf import settings
+from django.conf.urls.static import static
 from django.urls import include, path
 
 urlpatterns = [
@@ -11,3 +13,6 @@ urlpatterns = [
     path('api/', include('maps.urls')),
     path('api/reports/', include('reports.urls')),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

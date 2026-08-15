@@ -27,6 +27,10 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
     def validate(self, attrs):
         data = super().validate(attrs)
+        avatar_url = self.user.avatar.url if self.user.avatar else None
+        request = self.context.get('request')
+        if avatar_url and request:
+            avatar_url = request.build_absolute_uri(avatar_url)
 
         if self.user.status != UserStatus.ACTIVE:
             raise serializers.ValidationError(
@@ -39,9 +43,11 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             'email': self.user.email,
             'first_name': self.user.first_name,
             'last_name': self.user.last_name,
+            'avatar': avatar_url,
             'role': self.user.role,
             'status': self.user.status,
             'barangay_id': str(self.user.barangay_id) if self.user.barangay_id else None,
+            'barangay_name': self.user.barangay.name if self.user.barangay else None,
         }
         return data
 
@@ -63,14 +69,20 @@ class UserProfileSerializer(serializers.ModelSerializer):
     can change those.
     """
     addresses = UserAddressSerializer(many=True, read_only=True)
+    barangay_name = serializers.CharField(source='barangay.name', read_only=True)
 
     class Meta:
         model = User
         fields = [
             'user_id', 'username', 'email', 'first_name', 'last_name',
-            'role', 'status', 'barangay', 'addresses',
+            'avatar', 'role', 'status', 'barangay', 'barangay_name', 'addresses',
         ]
         read_only_fields = ['user_id', 'username', 'role', 'status', 'barangay']
+
+    def validate_avatar(self, value):
+        if value.size > 5 * 1024 * 1024:
+            raise serializers.ValidationError('Profile picture must be 5 MB or smaller.')
+        return value
 
 
 class ChangePasswordSerializer(serializers.Serializer):
@@ -111,9 +123,9 @@ class UserAdminSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'user_id', 'username', 'email', 'first_name', 'last_name',
-            'role', 'barangay', 'status', 'assigned_purok', 'password',
+            'avatar', 'role', 'barangay', 'status', 'assigned_purok', 'password',
         ]
-        read_only_fields = ['user_id']
+        read_only_fields = ['user_id', 'avatar']
 
     def validate_password(self, value):
         if value:
@@ -122,6 +134,24 @@ class UserAdminSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         role = attrs.get('role', getattr(self.instance, 'role', None))
+        request = self.context.get('request')
+
+        # Barangay Secretaries manage accounts only inside their own barangay.
+        # Force the assignment server-side so a crafted request cannot create
+        # or transfer an account to another barangay.
+        if request and request.user.role == UserRole.BARANGAY_SECRETARY:
+            if not request.user.barangay_id:
+                raise serializers.ValidationError('Your secretary account has no barangay assignment.')
+            if role == UserRole.MDRRMO_OFFICER:
+                raise serializers.ValidationError({
+                    'role': 'Barangay Secretaries cannot create or manage municipal-level MDRRMO accounts.'
+                })
+            requested_barangay = attrs.get('barangay')
+            if requested_barangay and requested_barangay != request.user.barangay:
+                raise serializers.ValidationError({
+                    'barangay': 'You can only manage accounts assigned to your own barangay.'
+                })
+            attrs['barangay'] = request.user.barangay
 
         if 'barangay' in attrs:
             barangay = attrs['barangay']
@@ -193,6 +223,10 @@ class CreateResidentAccountSerializer(serializers.Serializer):
             household = Household.objects.get(pk=value, is_archived=False)
         except Household.DoesNotExist:
             raise serializers.ValidationError('Household not found.')
+        request = self.context.get('request')
+        if request and request.user.role == UserRole.BARANGAY_SECRETARY:
+            if household.barangay_id != request.user.barangay_id:
+                raise serializers.ValidationError('You can only create Resident accounts for households in your own barangay.')
         if household.resident_user_id:
             raise serializers.ValidationError('This household already has a linked Resident account.')
         self._household = household
