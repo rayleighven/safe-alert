@@ -30,9 +30,15 @@
           <span class="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
         </button>
         <span class="rounded-full bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-700">Advisory Active</span>
-        <router-link to="/profile" class="text-right">
-          <p class="text-sm font-semibold text-slate-800">{{ displayName }}</p>
-          <p class="text-xs text-slate-500">{{ authStore.user?.role }}</p>
+        <router-link to="/profile" class="flex items-center gap-2 text-right">
+          <div class="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-blue-100 text-xs font-bold text-blue-700">
+            <img v-if="authStore.user?.avatar" :src="authStore.user.avatar" alt="" class="h-full w-full object-cover" />
+            <span v-else>{{ userInitials }}</span>
+          </div>
+          <div>
+            <p class="text-sm font-semibold text-slate-800">{{ displayName }}</p>
+            <p class="text-xs text-slate-500">{{ authStore.user?.role }}</p>
+          </div>
         </router-link>
       </div>
     </header>
@@ -46,4 +52,5 @@ import AppNavBar from '@/components/AppNavBar.vue'
 
 const authStore = useAuthStore()
 const displayName = computed(() => authStore.user?.first_name || authStore.user?.username)
+const userInitials = computed(() => displayName.value?.slice(0, 2).toUpperCase() || 'U')
 </script>

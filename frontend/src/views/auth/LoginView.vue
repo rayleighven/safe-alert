@@ -58,15 +58,21 @@
 
             <div>
               <label for="password" class="mb-1.5 block text-sm font-semibold text-slate-700">Password</label>
-              <input
-                id="password"
-                v-model="password"
-                type="password"
-                required
-                autocomplete="current-password"
-                placeholder="Enter your password"
-                class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-              />
+              <div class="relative">
+                <input
+                  id="password"
+                  v-model="password"
+                  :type="showPassword ? 'text' : 'password'"
+                  required
+                  autocomplete="current-password"
+                  placeholder="Enter your password"
+                  class="w-full rounded-lg border border-slate-300 py-2.5 pl-3 pr-11 text-slate-900 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                />
+                <button type="button" class="absolute inset-y-0 right-0 flex items-center px-3 text-slate-400 hover:text-slate-600" :aria-label="showPassword ? 'Hide password' : 'Show password'" @click="showPassword = !showPassword">
+                  <svg v-if="showPassword" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m3 3 18 18M10.6 10.6a2 2 0 0 0 2.8 2.8M9.9 4.2A10.8 10.8 0 0 1 12 4c5 0 8.3 4.1 9.5 6-0.5.8-1.3 2-2.4 3.1M6.2 6.2C4.7 7.4 3.6 9 2.5 10c1.2 1.9 4.5 6 9.5 6 1.1 0 2.1-.2 3-.5" /></svg>
+                  <svg v-else class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.5 12S5.8 6 12 6s9.5 6 9.5 6-3.3 6-9.5 6S2.5 12 2.5 12Z" /><circle cx="12" cy="12" r="2.5" /></svg>
+                </button>
+              </div>
             </div>
 
             <p v-if="isLockedOut" class="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
@@ -108,6 +114,7 @@ import safeAlertLogo from '@/assets/images/safe-alert-logo.png'
 
 const username = ref('')
 const password = ref('')
+const showPassword = ref(false)
 const errorMessage = ref('')
 const isLoading = ref(false)
 const lockoutUntil = ref(null)

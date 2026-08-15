@@ -30,3 +30,15 @@ export function changePassword(currentPassword, newPassword) {
 export function createResidentAccount(data) {
   return api.post('/auth/users/create-resident/', data)
 }
+
+export function listBarangayAccounts() {
+  return api.get('/auth/users/')
+}
+
+export function createBarangayAccount(data) {
+  return api.post('/auth/users/', data)
+}
+
+export function updateBarangayAccount(userId, data) {
+  return api.patch(`/auth/users/${userId}/`, data)
+}

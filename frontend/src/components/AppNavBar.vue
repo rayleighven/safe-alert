@@ -38,10 +38,21 @@
         <router-link v-if="canViewSmsBroadcasts" to="/sms-notifications" class="menu-link" @click="closeMenu">SMS Broadcasts</router-link>
         <router-link to="/hazard-maps" class="menu-link" @click="closeMenu">Hazard Maps</router-link>
         <router-link v-if="canViewReports" to="/reports" class="menu-link" @click="closeMenu">Reports</router-link>
+        <router-link v-if="isSecretary" to="/accounts" class="menu-link" @click="closeMenu">Accounts</router-link>
         <router-link to="/profile" class="menu-link" @click="closeMenu">Profile</router-link>
         <button type="button" class="menu-link text-left text-red-600 hover:text-red-700" @click="handleLogout">Logout</button>
       </div>
     </div>
+    <ConfirmActionDialog
+      v-if="showLogoutConfirm"
+      title="Log out of SAFE-ALERT?"
+      message="You will need to sign in again to access your account."
+      confirm-label="Log out"
+      confirm-class="bg-red-600 hover:bg-red-700"
+      title-id="mobile-logout-confirmation"
+      @cancel="showLogoutConfirm = false"
+      @confirm="confirmLogout"
+    />
   </nav>
 </template>
 
@@ -49,6 +60,7 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import ConfirmActionDialog from '@/components/ConfirmActionDialog.vue'
 
 defineProps({
   standalone: { type: Boolean, default: false },
@@ -57,6 +69,7 @@ defineProps({
 const authStore = useAuthStore()
 const router = useRouter()
 const isMenuOpen = ref(false)
+const showLogoutConfirm = ref(false)
 
 const canViewHouseholds = computed(() => {
   const role = authStore.user?.role
@@ -101,9 +114,15 @@ const canViewReports = computed(() => {
     'Resident',
   ].includes(role)
 })
+const isSecretary = computed(() => authStore.user?.role === 'Barangay Secretary')
 
-async function handleLogout() {
+function handleLogout() {
   closeMenu()
+  showLogoutConfirm.value = true
+}
+
+async function confirmLogout() {
+  showLogoutConfirm.value = false
   await authStore.logout()
   router.push({ name: 'login' })
 }

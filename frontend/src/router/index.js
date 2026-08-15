@@ -3,6 +3,7 @@ import { useAuthStore } from '@/stores/auth'
 
 import LoginView from '@/views/auth/LoginView.vue'
 import ProfileView from '@/views/auth/ProfileView.vue'
+import AccountsView from '@/views/auth/AccountsView.vue'
 import DashboardView from '@/views/DashboardView.vue'
 
 import HouseholdListView from '@/views/households/HouseholdListView.vue'
@@ -40,6 +41,12 @@ const routes = [
     path: '/profile',
     name: 'profile',
     component: ProfileView,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/accounts',
+    name: 'accounts',
+    component: AccountsView,
     meta: { requiresAuth: true },
   },
   {

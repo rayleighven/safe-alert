@@ -46,11 +46,18 @@
         <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 3h9l3 3v15H6V3Zm3 8h6m-6 4h6m-6-8h2" /></svg>
         <span>Reports</span>
       </router-link>
+      <router-link v-if="isSecretary" to="/accounts" class="nav-link" active-class="nav-link-active">
+        <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m12-11a4 4 0 1 1-8 0 4 4 0 0 1 8 0Zm2 3.5a4 4 0 0 1 0 7" /></svg>
+        <span>Accounts</span>
+      </router-link>
     </nav>
 
     <div class="border-t border-white/10 p-4">
       <div class="mb-3 flex items-center gap-3 px-2">
-        <div class="flex h-9 w-9 items-center justify-center rounded-full bg-blue-500 text-xs font-bold text-white">{{ userInitials }}</div>
+        <div class="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-blue-500 text-xs font-bold text-white">
+          <img v-if="authStore.user?.avatar" :src="authStore.user.avatar" alt="" class="h-full w-full object-cover" />
+          <span v-else>{{ userInitials }}</span>
+        </div>
         <div class="min-w-0">
           <p class="truncate text-sm font-semibold text-white">{{ displayName }}</p>
           <p class="truncate text-xs text-blue-200">{{ authStore.user?.role }}</p>
@@ -65,17 +72,29 @@
         <span>Logout</span>
       </button>
     </div>
+    <ConfirmActionDialog
+      v-if="showLogoutConfirm"
+      title="Log out of SAFE-ALERT?"
+      message="You will need to sign in again to access your account."
+      confirm-label="Log out"
+      confirm-class="bg-red-600 hover:bg-red-700"
+      title-id="sidebar-logout-confirmation"
+      @cancel="showLogoutConfirm = false"
+      @confirm="confirmLogout"
+    />
   </aside>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import ConfirmActionDialog from '@/components/ConfirmActionDialog.vue'
 import safeAlertLogo from '@/assets/images/safe-alert-logo.png'
 
 const authStore = useAuthStore()
 const router = useRouter()
+const showLogoutConfirm = ref(false)
 const role = computed(() => authStore.user?.role)
 const displayName = computed(() => authStore.user?.first_name || authStore.user?.username || 'User')
 const userInitials = computed(() => displayName.value.slice(0, 2).toUpperCase())
@@ -83,8 +102,14 @@ const canViewHouseholds = computed(() => ['Barangay Secretary', 'Barangay Kagawa
 const canViewVulnerabilityDashboard = computed(() => ['Barangay Secretary', 'Barangay Kagawad/Tanod', 'Barangay Healthworker', 'MDRRMO Officer'].includes(role.value))
 const canViewSmsBroadcasts = computed(() => ['Barangay Secretary', 'BDRRMC Chairperson', 'Barangay Kagawad/Tanod', 'Barangay Healthworker', 'MDRRMO Officer'].includes(role.value))
 const canViewReports = computed(() => ['Barangay Secretary', 'Barangay Kagawad/Tanod', 'Barangay Healthworker', 'BDRRMC Chairperson', 'MDRRMO Officer', 'Resident'].includes(role.value))
+const isSecretary = computed(() => role.value === 'Barangay Secretary')
 
-async function handleLogout() {
+function handleLogout() {
+  showLogoutConfirm.value = true
+}
+
+async function confirmLogout() {
+  showLogoutConfirm.value = false
   await authStore.logout()
   router.push({ name: 'login' })
 }
