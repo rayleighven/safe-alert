@@ -5,10 +5,12 @@ from django.db.models import Sum
 from django.utils import timezone
 from rest_framework import generics, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
@@ -66,6 +68,9 @@ def _is_locked_out(username, ip_address):
 
 class LoginView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+    permission_classes = [AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'login'
 
     def post(self, request, *args, **kwargs):
         username = request.data.get('username')
@@ -135,6 +140,11 @@ class ChangePasswordView(APIView):
         serializer = ChangePasswordSerializer(data=request.data, context={'request': request})
         serializer.is_valid(raise_exception=True)
         serializer.save()
+        # A password change must end every existing refresh-token session,
+        # including sessions on other devices. Existing access tokens are
+        # short-lived (15 minutes) and cannot be revoked statelessly.
+        for token in OutstandingToken.objects.filter(user=request.user):
+            BlacklistedToken.objects.get_or_create(token=token)
         write_audit_log(
             user=request.user,
             action=AuditAction.UPDATE,
@@ -142,7 +152,13 @@ class ChangePasswordView(APIView):
             record_id=request.user.user_id,
             request=request,
         )
-        return Response({'detail': 'Password changed successfully.'}, status=status.HTTP_200_OK)
+        return Response(
+            {
+                'detail': 'Password changed successfully. Please sign in again.',
+                'reauthentication_required': True,
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class UserAdminViewSet(viewsets.ModelViewSet):

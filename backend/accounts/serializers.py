@@ -1,4 +1,5 @@
 from django.contrib.auth.password_validation import validate_password
+from PIL import Image, UnidentifiedImageError
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
@@ -91,6 +92,15 @@ class UserProfileSerializer(serializers.ModelSerializer):
     def validate_avatar(self, value):
         if value.size > 5 * 1024 * 1024:
             raise serializers.ValidationError('Profile picture must be 5 MB or smaller.')
+        try:
+            image = Image.open(value)
+            image.verify()
+        except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError):
+            raise serializers.ValidationError('Upload a valid image file.')
+        finally:
+            # Pillow verification consumes the stream; rewind it so Django can
+            # save the validated image afterward.
+            value.seek(0)
         return value
 
 

@@ -9,7 +9,9 @@ SECRET_KEY = config('DJANGO_SECRET_KEY')
 
 DEBUG = config('DJANGO_DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+# Comma-separated environment variables keep deployment-specific addresses out
+# of source code. Never use '*' here: it makes Host-header attacks possible.
+ALLOWED_HOSTS = [host.strip() for host in config('DJANGO_ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',') if host.strip()]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -35,6 +37,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'core.security.SecurityHeadersMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -71,12 +74,16 @@ DATABASES = {
         'PASSWORD': config('DB_PASSWORD'),
         'HOST': config('DB_HOST'),
         'PORT': config('DB_PORT'),
+        # PostgreSQL verifies encrypted connections in production when the
+        # deployment supplies sslmode=verify-full (and a CA certificate, if
+        # required by the provider). "prefer" keeps local development simple.
+        'OPTIONS': {'sslmode': config('DB_SSLMODE', default='prefer')},
     }
 }
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator', 'OPTIONS': {'min_length': 12}},
     {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
@@ -95,9 +102,40 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'accounts.User'
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",  # Vite dev server default
+    origin.strip()
+    for origin in config('CORS_ALLOWED_ORIGINS', default='http://localhost:5173').split(',')
+    if origin.strip()
 ]
-CORS_ALLOW_CREDENTIALS = True
+# Authentication is sent in an Authorization header, not a cross-site cookie.
+CORS_ALLOW_CREDENTIALS = False
+CORS_ALLOW_METHODS = ['DELETE', 'GET', 'OPTIONS', 'PATCH', 'POST', 'PUT']
+CORS_ALLOW_HEADERS = ['accept', 'authorization', 'content-type', 'origin', 'user-agent', 'x-csrftoken', 'x-requested-with']
+CSRF_TRUSTED_ORIGINS = [
+    origin.strip()
+    for origin in config('CSRF_TRUSTED_ORIGINS', default='http://localhost:5173').split(',')
+    if origin.strip()
+]
+
+# Browser and transport protections. SSL redirect/HSTS are deliberately
+# disabled for local HTTP development but enabled by default in production.
+SECURE_SSL_REDIRECT = config('DJANGO_SECURE_SSL_REDIRECT', default=not DEBUG, cast=bool)
+if config('DJANGO_BEHIND_HTTPS_PROXY', default=False, cast=bool):
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_HSTS_SECONDS = 31_536_000 if SECURE_SSL_REDIRECT else 0
+SECURE_HSTS_INCLUDE_SUBDOMAINS = SECURE_SSL_REDIRECT
+SECURE_HSTS_PRELOAD = SECURE_SSL_REDIRECT
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = 'same-origin'
+X_FRAME_OPTIONS = 'DENY'
+SESSION_COOKIE_SECURE = SECURE_SSL_REDIRECT
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Strict'
+CSRF_COOKIE_SECURE = SECURE_SSL_REDIRECT
+CSRF_COOKIE_SAMESITE = 'Strict'
+
+# Reject unexpectedly large request bodies before they consume server memory.
+DATA_UPLOAD_MAX_MEMORY_SIZE = 6 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 6 * 1024 * 1024
 
 AUTHENTICATION_BACKENDS = [
     'axes.backends.AxesStandaloneBackend',  # must be first
@@ -111,6 +149,17 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
+    'DEFAULT_THROTTLE_CLASSES': (
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ),
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/hour',
+        'user': '1000/hour',
+        # django-axes is the stricter credential-stuffing defence; this is an
+        # additional per-IP burst limit that also protects the login endpoint.
+        'login': '10/minute',
+    },
 }
 
 SIMPLE_JWT = {
@@ -121,6 +170,7 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
     'USER_ID_FIELD': 'user_id',
     'USER_ID_CLAIM': 'user_id',
+    'UPDATE_LAST_LOGIN': True,
 }
 
 # django-axes: lock an account/IP after 3 failed login attempts, 1-minute cooldown.
@@ -135,6 +185,9 @@ AXES_FAILURE_LIMIT = 3
 AXES_COOLOFF_TIME = timedelta(minutes=1)
 AXES_LOCKOUT_PARAMETERS = [['username', 'ip_address']]
 AXES_RESET_COOL_OFF_ON_FAILURE_DURING_LOCKOUT = False
+
+# Do not leak passwords, access tokens, or API keys in Django error emails.
+DEFAULT_EXCEPTION_REPORTER_FILTER = 'django.views.debug.SafeExceptionReporterFilter'
 
 # SMS gateway (Semaphore — semaphore.co). SMS_DRY_RUN defaults to True so the
 # app is safe to run with no credentials at all — nothing gets sent, nothing

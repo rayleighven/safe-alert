@@ -151,11 +151,13 @@
  
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import * as authApi from '@/services/authApi'
 import { useAuthStore } from '@/stores/auth'
 import ConfirmActionDialog from '@/components/ConfirmActionDialog.vue'
  
 const authStore = useAuthStore()
+const router = useRouter()
  
 const isLoading = ref(true)
 const isSaving = ref(false)
@@ -251,11 +253,16 @@ async function confirmPasswordChange() {
   try {
     await authApi.changePassword(passwordForm.current_password, passwordForm.new_password)
     passwordSuccess.value = true
-    passwordMessage.value = 'Password changed successfully.'
+    passwordMessage.value = 'Password changed. Please sign in again.'
     passwordForm.current_password = ''
     passwordForm.new_password = ''
     showCurrentPassword.value = false
     showNewPassword.value = false
+    // The backend revokes every refresh token after a password change. Clear
+    // browser-held tokens immediately rather than leaving a short-lived access
+    // token usable in this tab.
+    authStore.clearSession()
+    window.setTimeout(() => router.replace({ name: 'login' }), 1200)
   } catch (error) {
     passwordSuccess.value = false
     passwordMessage.value =

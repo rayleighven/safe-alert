@@ -5,6 +5,8 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework.test import APIClient
+from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from core.choices import UserRole, UserStatus
 from core.models import Barangay
@@ -157,3 +159,38 @@ class BarangayAccountScopeTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.local_user.refresh_from_db()
         self.assertEqual(self.local_user.status, UserStatus.INACTIVE)
+
+
+class PasswordChangeSecurityTests(TestCase):
+    def setUp(self):
+        barangay = Barangay.objects.create(
+            name='Password Test Barangay',
+            municipality='Baclayon',
+            province='Bohol',
+            contact_number='09171234569',
+        )
+        self.user = User.objects.create_user(
+            username='password_security_test',
+            password='Correct-Horse-Battery-Staple-123!',
+            role=UserRole.BARANGAY_HEALTHWORKER,
+            barangay=barangay,
+            status=UserStatus.ACTIVE,
+        )
+        self.refresh_token = RefreshToken.for_user(self.user)
+        self.client = APIClient()
+        self.client.force_authenticate(self.user)
+
+    def test_password_change_revokes_all_outstanding_refresh_tokens(self):
+        response = self.client.post(
+            reverse('change-password'),
+            {
+                'current_password': 'Correct-Horse-Battery-Staple-123!',
+                'new_password': 'New-Correct-Horse-Battery-Staple-456!',
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()['reauthentication_required'])
+        self.assertTrue(
+            BlacklistedToken.objects.filter(token__jti=self.refresh_token['jti']).exists()
+        )
