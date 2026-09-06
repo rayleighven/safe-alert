@@ -31,6 +31,12 @@
               :key="map.map_id"
               class="bg-white rounded-xl shadow-sm p-5 hover:shadow-md transition-shadow"
             >
+              <img
+                v-if="map.map_image"
+                :src="map.map_image"
+                :alt="`${map.map_title} image`"
+                class="h-40 w-full rounded-lg object-cover mb-3"
+              />
               <div class="flex items-start justify-between mb-2">
                 <h3 class="font-semibold text-slate-800">{{ map.map_title }}</h3>
                 <span :class="hazardBadgeClass(map.hazard_type)" class="px-2 py-1 rounded-full text-xs font-medium shrink-0 ml-2">
@@ -42,6 +48,7 @@
 
               <div class="flex items-center justify-between">
                 <a
+                  v-if="map.map_url"
                   :href="map.map_url"
                   target="_blank"
                   rel="noopener noreferrer"
@@ -53,6 +60,7 @@
                     <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
                   </svg>
                 </a>
+                <span v-else></span>
                 <div v-if="isSecretary" class="flex gap-3 text-xs">
                   <router-link :to="{ name: 'hazard-map-edit', params: { id: map.map_id } }" class="text-slate-500 hover:text-blue-600">
                     Edit

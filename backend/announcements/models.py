@@ -13,6 +13,8 @@ class Announcement(TimeStampedModel, ArchivableModel):
     title = models.CharField(max_length=255)
     body = models.TextField()
     is_public = models.BooleanField(default=True)
+    image = models.ImageField(upload_to='announcement_images/', blank=True, null=True)
+    image_url = models.URLField(blank=True, null=True)
     posted_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,

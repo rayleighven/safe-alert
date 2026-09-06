@@ -18,6 +18,12 @@
 
       <div v-else class="space-y-4">
         <div v-for="a in announcements" :key="a.announcement_id" class="bg-white rounded-xl shadow-sm p-5">
+          <img
+            v-if="a.image || a.image_url"
+            :src="a.image || a.image_url"
+            :alt="`${a.title} image`"
+            class="h-48 w-full rounded-lg object-cover mb-3"
+          />
           <div class="flex items-start justify-between mb-2 gap-3 flex-wrap">
             <h2 class="font-semibold text-slate-800">{{ a.title }}</h2>
             <div class="flex items-center gap-2 flex-wrap">

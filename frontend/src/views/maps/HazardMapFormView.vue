@@ -46,14 +46,35 @@
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Map URL</label>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Map Image</label>
+          <div class="flex items-center gap-3">
+            <label for="map-image" class="inline-flex cursor-pointer rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50">
+              Choose Image
+            </label>
+            <input id="map-image" type="file" accept="image/png,image/jpeg,image/webp" class="sr-only" @change="handleImageChange" />
+            <button v-if="imageFile" type="button" @click="handleRemoveImage" class="text-sm text-red-600 hover:text-red-700">
+              Remove
+            </button>
+          </div>
+          <p class="mt-1 text-xs text-slate-500">PNG, JPG, or WEBP. Maximum 5 MB.</p>
+          <p v-if="imageError" class="mt-1 text-xs text-red-600">{{ imageError }}</p>
+        </div>
+
+        <div v-if="imagePreview" class="rounded-lg border border-slate-200 p-3">
+          <p class="mb-2 text-xs font-medium text-slate-500">Image Preview</p>
+          <img :src="imagePreview" alt="Hazard map preview" class="h-40 w-full rounded-lg object-cover" @error="handlePreviewError" />
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Map URL{{ imageFile ? ' (optional)' : '' }}</label>
           <input
             v-model="form.map_url"
             type="url"
-            required
+            :required="!imageFile"
             placeholder="https://noah.up.edu.ph/..."
             class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+          <p class="mt-1 text-xs text-slate-500">Provide a link to the full map, an uploaded image, or both.</p>
         </div>
 
         <div>
@@ -96,6 +117,9 @@ const router = useRouter()
 const isEditMode = computed(() => !!route.params.id)
 const isSaving = ref(false)
 const errorMessage = ref('')
+const imageFile = ref(null)
+const imagePreview = ref('')
+const imageError = ref('')
 
 const form = reactive({
   map_title: '',
@@ -115,17 +139,52 @@ onMounted(async () => {
       map_url: response.data.map_url,
       description: response.data.description || '',
     })
+    imagePreview.value = response.data.map_image || ''
   }
 })
+
+function handleImageChange(event) {
+  const [file] = event.target.files
+  imageError.value = ''
+  if (!file) return
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
+    imageError.value = 'Choose a PNG, JPG, or WEBP image no larger than 5 MB.'
+    event.target.value = ''
+    return
+  }
+  imageFile.value = file
+  imagePreview.value = URL.createObjectURL(file)
+}
+
+function handleRemoveImage() {
+  imageFile.value = null
+  imageError.value = ''
+  imagePreview.value = ''
+}
+
+function handlePreviewError() {
+  if (!imageFile.value) {
+    imagePreview.value = ''
+  }
+}
 
 async function handleSubmit() {
   isSaving.value = true
   errorMessage.value = ''
   try {
+    let payload = form
+    if (imageFile.value) {
+      payload = new FormData()
+      Object.entries(form).forEach(([key, value]) => {
+        payload.append(key, value ?? '')
+      })
+      payload.append('map_image', imageFile.value)
+    }
+
     if (isEditMode.value) {
-      await mapsApi.updateHazardMap(route.params.id, form)
+      await mapsApi.updateHazardMap(route.params.id, payload)
     } else {
-      await mapsApi.createHazardMap(form)
+      await mapsApi.createHazardMap(payload)
     }
     router.push({ name: 'hazard-maps' })
   } catch (error) {

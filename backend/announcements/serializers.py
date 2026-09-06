@@ -1,4 +1,8 @@
 # backend/announcements/serializers.py
+import json
+
+from django.http import QueryDict
+from PIL import Image, UnidentifiedImageError
 from rest_framework import serializers
 
 from .models import Announcement, AnnouncementCategory, SMSLog, SMSNotification
@@ -18,7 +22,7 @@ class AnnouncementSerializer(serializers.ModelSerializer):
         model = Announcement
         fields = [
             'announcement_id', 'barangay', 'title', 'body', 'is_public', 'posted_by',
-            'published_at', 'expires_at', 'created_at', 'updated_at',
+            'image', 'image_url', 'published_at', 'expires_at', 'created_at', 'updated_at',
             'is_archived', 'archived_at', 'categories',
         ]
         # posted_by is always server-set from the requesting user. barangay
@@ -33,6 +37,40 @@ class AnnouncementSerializer(serializers.ModelSerializer):
             'created_at', 'updated_at', 'is_archived', 'archived_at',
         ]
         extra_kwargs = {'barangay': {'required': False}}
+
+    def to_internal_value(self, data):
+        # Multipart form submissions (used when an image file is attached)
+        # can't carry a nested list natively — the frontend sends `categories`
+        # as a JSON-encoded string in that case, so unpack it back into a list
+        # before the nested serializer sees it.
+        if isinstance(data, QueryDict) and isinstance(data.get('categories'), str):
+            data = data.dict()
+            try:
+                data['categories'] = json.loads(data['categories']) if data['categories'] else []
+            except ValueError:
+                raise serializers.ValidationError({'categories': 'Invalid categories format.'})
+        return super().to_internal_value(data)
+
+    def validate_image(self, value):
+        if value.size > 5 * 1024 * 1024:
+            raise serializers.ValidationError('Announcement image must be 5 MB or smaller.')
+        try:
+            image = Image.open(value)
+            image.verify()
+        except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError):
+            raise serializers.ValidationError('Upload a valid image file.')
+        finally:
+            # Pillow verification consumes the stream; rewind it so Django can
+            # save the validated image afterward.
+            value.seek(0)
+        return value
+
+    def validate(self, attrs):
+        # An uploaded image takes precedence over an image URL — don't persist
+        # both at once, same pattern as EvacuationCenter.
+        if attrs.get('image'):
+            attrs['image_url'] = ''
+        return attrs
 
     def create(self, validated_data):
         categories_data = validated_data.pop('categories', [])

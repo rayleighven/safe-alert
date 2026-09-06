@@ -12,7 +12,8 @@ class HazardMap(models.Model):
     map_title = models.CharField(max_length=255)
     hazard_type = models.CharField(max_length=20, choices=HazardType.choices)
     source = models.CharField(max_length=100)  # e.g. "Project NOAH", "PHIVOLCS"
-    map_url = models.TextField()
+    map_url = models.TextField(blank=True)
+    map_image = models.ImageField(upload_to='hazard_map_images/', blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     uploaded_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
