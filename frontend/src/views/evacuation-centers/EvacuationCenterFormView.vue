@@ -82,6 +82,39 @@
           </div>
         </div>
 
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Evacuation Center Image</label>
+          <div class="flex items-center gap-3">
+            <label for="center-photo" class="inline-flex cursor-pointer rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50">
+              Choose Image
+            </label>
+            <input id="center-photo" type="file" accept="image/png,image/jpeg,image/webp" class="sr-only" @change="handlePhotoChange" />
+            <button v-if="photoFile" type="button" @click="handleRemovePhoto" class="text-sm text-red-600 hover:text-red-700">
+              Remove
+            </button>
+          </div>
+          <p class="mt-1 text-xs text-slate-500">PNG, JPG, or WEBP. Maximum 5 MB.</p>
+          <p v-if="photoError" class="mt-1 text-xs text-red-600">{{ photoError }}</p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Image URL</label>
+          <input
+            v-model="form.photo_url"
+            type="url"
+            placeholder="https://example.com/evacuation-center.jpg"
+            :disabled="!!photoFile"
+            class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100 disabled:text-slate-400"
+            @input="handlePhotoUrlInput"
+          />
+          <p v-if="photoFile" class="mt-1 text-xs text-slate-500">An uploaded image takes priority — remove it above to use a URL instead.</p>
+        </div>
+
+        <div v-if="photoPreview" class="rounded-lg border border-slate-200 p-3">
+          <p class="mb-2 text-xs font-medium text-slate-500">Image Preview</p>
+          <img :src="photoPreview" alt="Evacuation center preview" class="h-40 w-full rounded-lg object-cover" @error="handlePreviewError" />
+        </div>
+
         <p v-if="errorMessage" class="text-sm text-red-600">{{ errorMessage }}</p>
 
         <div class="flex gap-3">
@@ -116,6 +149,9 @@ const router = useRouter()
 const isEditMode = computed(() => !!route.params.id)
 const isSaving = ref(false)
 const errorMessage = ref('')
+const photoFile = ref(null)
+const photoPreview = ref('')
+const photoError = ref('')
 
 const form = reactive({
   name: '',
@@ -125,6 +161,7 @@ const form = reactive({
   status: 'Active',
   contact_person: '',
   contact_number: '',
+  photo_url: '',
 })
 
 onMounted(async () => {
@@ -138,19 +175,64 @@ onMounted(async () => {
       status: response.data.status,
       contact_person: response.data.contact_person || '',
       contact_number: response.data.contact_number || '',
+      photo_url: response.data.photo_url || '',
     })
+    photoPreview.value = response.data.photo || response.data.photo_url || ''
   }
 })
+
+function handlePhotoChange(event) {
+  const [file] = event.target.files
+  photoError.value = ''
+  if (!file) return
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) {
+    photoError.value = 'Choose a PNG, JPG, or WEBP image no larger than 5 MB.'
+    event.target.value = ''
+    return
+  }
+  photoFile.value = file
+  photoPreview.value = URL.createObjectURL(file)
+}
+
+function handleRemovePhoto() {
+  photoFile.value = null
+  photoError.value = ''
+  photoPreview.value = form.photo_url || ''
+}
+
+function handlePhotoUrlInput() {
+  if (photoFile.value) return // an uploaded file takes priority; ignore URL-driven preview changes
+  photoPreview.value = form.photo_url || ''
+}
+
+function handlePreviewError() {
+  // An unreachable/invalid image URL shouldn't block submission — just drop
+  // the broken preview. Doesn't touch form.photo_url, so the value the user
+  // typed is still submitted and validated server-side.
+  if (!photoFile.value) {
+    photoPreview.value = ''
+  }
+}
 
 async function handleSubmit() {
   isSaving.value = true
   errorMessage.value = ''
   try {
+    let payload = form
+    if (photoFile.value) {
+      payload = new FormData()
+      Object.entries(form).forEach(([key, value]) => {
+        if (key === 'photo_url') return // uploaded file takes priority; don't send both
+        payload.append(key, value ?? '')
+      })
+      payload.append('photo', photoFile.value)
+    }
+
     if (isEditMode.value) {
-      await evacuationCentersApi.updateCenter(route.params.id, form)
+      await evacuationCentersApi.updateCenter(route.params.id, payload)
       router.push({ name: 'evacuation-center-detail', params: { id: route.params.id } })
     } else {
-      const response = await evacuationCentersApi.createCenter(form)
+      const response = await evacuationCentersApi.createCenter(payload)
       router.push({ name: 'evacuation-center-detail', params: { id: response.data.center_id } })
     }
   } catch (error) {

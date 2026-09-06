@@ -5,7 +5,7 @@
       <div class="flex items-center justify-between mb-6">
         <h1 class="text-2xl font-bold text-slate-800">Announcements</h1>
         <router-link
-          v-if="isSecretary"
+          v-if="canManageAnnouncements"
           to="/announcements/new"
           class="bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg px-4 py-2"
         >
@@ -37,7 +37,7 @@
           <p class="text-slate-600 text-sm mb-3 whitespace-pre-line">{{ a.body }}</p>
           <div class="flex items-center justify-between text-xs text-slate-400">
             <span>Posted {{ formatDate(a.created_at) }}</span>
-            <div v-if="isSecretary" class="flex gap-3">
+            <div v-if="canManageAnnouncements" class="flex gap-3">
               <router-link :to="{ name: 'announcement-edit', params: { id: a.announcement_id } }" class="text-blue-600 hover:text-blue-700">
                 Edit
               </router-link>
@@ -60,7 +60,7 @@ const authStore = useAuthStore()
 const announcements = ref([])
 const isLoading = ref(true)
 
-const isSecretary = computed(() => authStore.user?.role === 'Barangay Secretary')
+const canManageAnnouncements = computed(() => ['Barangay Secretary', 'MDRRMO Officer'].includes(authStore.user?.role))
 
 function categoryBadgeClass(category) {
   if (category === 'Emergency') return 'bg-red-100 text-red-700'

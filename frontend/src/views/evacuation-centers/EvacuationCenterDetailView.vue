@@ -29,6 +29,10 @@
         </div>
       </div>
 
+      <div v-if="center.photo || center.photo_url" class="mb-6 overflow-hidden rounded-xl bg-white shadow-sm">
+        <img :src="center.photo || center.photo_url" :alt="`${center.name} photo`" class="h-56 w-full object-cover" />
+      </div>
+
       <div class="bg-white rounded-xl shadow-sm p-6 mb-6 grid grid-cols-2 gap-4 text-sm">
         <div><span class="text-slate-500">Capacity</span><p class="text-slate-800">{{ center.capacity }}</p></div>
         <div><span class="text-slate-500">Current Occupancy</span><p class="text-slate-800">{{ center.current_occupancy }}</p></div>

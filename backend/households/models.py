@@ -78,7 +78,15 @@ class VulnerabilityIndicator(models.Model):
     """
     Primary inputs to the CART Decision Tree Algorithm (Phase 3), which
     computes Household.evacuation_priority and Household.priority_score.
+
+    hazard_zone and the has_* fields are no longer client-set (see
+    serializers.VulnerabilityIndicatorSerializer read_only_fields) — they are
+    derived automatically in save() below, but remain real stored columns
+    because cart_classifier._vectorize() reads them directly as part of the
+    trained model's fixed feature schema.
     """
+    HAZARD_TYPE_FIELDS = ['flood_prone', 'storm_surge_prone', 'landslide_prone', 'coastal_zone']
+
     indicator_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     household = models.ForeignKey(Household, on_delete=models.CASCADE, related_name='vulnerability_indicators')
     has_senior_citizen = models.BooleanField(default=False)
@@ -110,6 +118,40 @@ class VulnerabilityIndicator(models.Model):
             models.CheckConstraint(condition=models.Q(roof_material__in=RoofMaterial.values), name='vuln_roof_material_valid'),
             models.CheckConstraint(condition=models.Q(hazard_zone__in=Priority.values), name='vuln_hazard_zone_valid'),
         ]
+
+    def _derive_hazard_zone(self):
+        """
+        hazard_zone feeds cart_classifier.HAZARD_ZONE_SCORES as its own
+        feature slot (independent of the flood/storm_surge/landslide/coastal
+        booleans, which occupy separate slots) — so it still has to be a
+        Low/Medium/High value. Derived from how many of the 4 hazard-type
+        checkboxes are selected, using the same 0.3/0.6 ratio thresholds
+        cart_classifier._label_from_score already uses for the bootstrap
+        training labels: 0-1 selected -> Low, 2 -> Medium, 3-4 -> High.
+        """
+        selected = sum(1 for field in self.HAZARD_TYPE_FIELDS if getattr(self, field))
+        ratio = selected / len(self.HAZARD_TYPE_FIELDS)
+        if ratio >= 0.6:
+            return Priority.HIGH
+        if ratio >= 0.3:
+            return Priority.MEDIUM
+        return Priority.LOW
+
+    def _derive_member_flags(self):
+        members = HouseholdMember.objects.filter(household_id=self.household_id, is_archived=False)
+        return {
+            'has_senior_citizen': members.filter(is_senior_citizen=True).exists(),
+            'has_pwd': members.filter(is_pwd=True).exists(),
+            'has_pregnant_member': members.filter(is_pregnant=True).exists(),
+            'has_child': members.filter(is_child=True).exists(),
+        }
+
+    def save(self, *args, **kwargs):
+        self.hazard_zone = self._derive_hazard_zone()
+        if self.household_id:
+            for field, value in self._derive_member_flags().items():
+                setattr(self, field, value)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Vulnerability - {self.household.household_number}"

@@ -24,7 +24,13 @@ class VulnerabilityIndicatorSerializer(serializers.ModelSerializer):
             'flood_prone', 'storm_surge_prone', 'landslide_prone', 'coastal_zone',
             'assessed_by', 'assessed_at', 'updated_at', 'is_archived', 'archived_at',
         ]
-        read_only_fields = ['indicator_id', 'assessed_by', 'assessed_at', 'updated_at', 'is_archived', 'archived_at']
+        # hazard_zone and the has_* fields are derived automatically in
+        # VulnerabilityIndicator.save() (from the hazard-type checkboxes and
+        # the household's members, respectively) — no longer client input.
+        read_only_fields = [
+            'indicator_id', 'assessed_by', 'assessed_at', 'updated_at', 'is_archived', 'archived_at',
+            'hazard_zone', 'has_senior_citizen', 'has_pwd', 'has_pregnant_member', 'has_child',
+        ]
 
 
 class HouseholdListSerializer(serializers.ModelSerializer):

@@ -7,6 +7,18 @@
       </h1>
 
       <form @submit.prevent="handleSubmit" class="space-y-4 bg-white rounded-xl shadow-sm p-6">
+        <div v-if="isMdrrmo">
+          <label class="block text-sm font-medium text-slate-700 mb-1">Barangay</label>
+          <select
+            v-model="form.barangay"
+            required
+            class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="" disabled>Select Barangay</option>
+            <option v-for="b in barangayOptions" :key="b.barangay_id" :value="b.barangay_id">{{ b.name }}</option>
+          </select>
+        </div>
+
         <div>
           <label class="block text-sm font-medium text-slate-700 mb-1">Title</label>
           <input
@@ -81,15 +93,20 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import AppNavBar from '@/components/AppNavBar.vue'
 import * as announcementsApi from '@/services/announcementsApi'
+import * as coreApi from '@/services/coreApi'
 
 const route = useRoute()
 const router = useRouter()
+const authStore = useAuthStore()
 
 const isEditMode = computed(() => !!route.params.id)
 const isSaving = ref(false)
 const errorMessage = ref('')
+const isMdrrmo = computed(() => authStore.user?.role === 'MDRRMO Officer')
+const barangayOptions = ref([])
 
 const categoryOptions = ['Advisory', 'Alert', 'Informational', 'Emergency']
 const selectedCategories = ref([])
@@ -100,9 +117,14 @@ const form = reactive({
   is_public: true,
   published_at: '',
   expires_at: '',
+  barangay: '',
 })
 
 onMounted(async () => {
+  if (isMdrrmo.value) {
+    const response = await coreApi.listBarangays()
+    barangayOptions.value = response.data
+  }
   if (isEditMode.value) {
     const response = await announcementsApi.getAnnouncement(route.params.id)
     Object.assign(form, {
@@ -111,6 +133,7 @@ onMounted(async () => {
       is_public: response.data.is_public,
       published_at: response.data.published_at ? response.data.published_at.slice(0, 16) : '',
       expires_at: response.data.expires_at ? response.data.expires_at.slice(0, 16) : '',
+      barangay: response.data.barangay || '',
     })
     selectedCategories.value = response.data.categories.map((c) => c.category)
   }
@@ -126,6 +149,7 @@ async function handleSubmit() {
       expires_at: form.expires_at || null,
       categories: selectedCategories.value.map((category) => ({ category })),
     }
+    if (!isMdrrmo.value) delete payload.barangay // every other role keeps barangay fully server-assigned, unchanged
     if (isEditMode.value) {
       await announcementsApi.updateAnnouncement(route.params.id, payload)
     } else {

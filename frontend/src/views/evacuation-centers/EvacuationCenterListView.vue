@@ -23,6 +23,9 @@
           class="bg-white rounded-xl shadow-sm p-5 cursor-pointer hover:shadow-md transition-shadow"
           @click="router.push({ name: 'evacuation-center-detail', params: { id: center.center_id } })"
         >
+          <div v-if="center.photo || center.photo_url" class="-mx-5 -mt-5 mb-3 overflow-hidden rounded-t-xl">
+            <img :src="center.photo || center.photo_url" :alt="`${center.name} photo`" class="h-32 w-full object-cover" />
+          </div>
           <div class="flex items-center justify-between mb-2">
             <h2 class="font-semibold text-slate-800">{{ center.name }}</h2>
             <span :class="statusBadgeClass(center.status)" class="px-2 py-1 rounded-full text-xs font-medium">

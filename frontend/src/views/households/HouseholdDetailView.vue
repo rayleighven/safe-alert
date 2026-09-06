@@ -97,17 +97,18 @@
       <div class="bg-white rounded-xl shadow-sm p-6 mb-6">
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-lg font-semibold text-slate-800">Household Members</h2>
-          <button v-if="isSecretary" @click="showMemberForm = !showMemberForm" class="text-sm text-blue-600 hover:text-blue-700">
+          <button v-if="isSecretary" @click="toggleMemberForm" class="text-sm text-blue-600 hover:text-blue-700">
             {{ showMemberForm ? 'Cancel' : '+ Add Member' }}
           </button>
         </div>
 
         <form
           v-if="showMemberForm"
-          @submit.prevent="handleAddMember"
+          @submit.prevent="handleSaveMember"
           class="grid grid-cols-2 gap-3 mb-4 p-4 bg-slate-50 rounded-lg"
         >
           <input v-model="memberForm.full_name" type="text" placeholder="Full Name" required class="rounded-lg border border-slate-300 px-3 py-2" />
+          <input v-model="memberForm.birth_date" type="date" @change="handleBirthDateChange" class="rounded-lg border border-slate-300 px-3 py-2" />
           <input v-model.number="memberForm.age" type="number" min="0" placeholder="Age" required class="rounded-lg border border-slate-300 px-3 py-2" />
           <select v-model="memberForm.sex" required class="rounded-lg border border-slate-300 px-3 py-2">
             <option value="" disabled>Sex</option>
@@ -115,39 +116,56 @@
             <option value="Female">Female</option>
           </select>
           <input v-model="memberForm.relationship" type="text" placeholder="Relationship to head" required class="rounded-lg border border-slate-300 px-3 py-2" />
+          <input v-model="memberForm.occupation" type="text" placeholder="Occupation (optional)" class="rounded-lg border border-slate-300 px-3 py-2" />
           <label class="flex items-center gap-2 text-sm"><input type="checkbox" v-model="memberForm.is_senior_citizen" /> Senior Citizen</label>
           <label class="flex items-center gap-2 text-sm"><input type="checkbox" v-model="memberForm.is_pwd" /> PWD</label>
           <label class="flex items-center gap-2 text-sm"><input type="checkbox" v-model="memberForm.is_pregnant" /> Pregnant</label>
           <label class="flex items-center gap-2 text-sm"><input type="checkbox" v-model="memberForm.is_child" /> Child</label>
-          <button type="submit" class="col-span-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 text-sm">Save Member</button>
+          <div class="col-span-2 flex gap-3">
+            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 text-sm">
+              {{ editingMemberId ? 'Update Member' : 'Save Member' }}
+            </button>
+            <button v-if="editingMemberId" type="button" @click="cancelMemberForm" class="bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-lg px-4 py-2 text-sm">
+              Cancel Edit
+            </button>
+          </div>
         </form>
 
         <table class="w-full text-sm">
           <thead class="text-left text-slate-500">
             <tr>
               <th class="py-2">Name</th>
+              <th class="py-2">Birthdate</th>
               <th class="py-2">Age</th>
               <th class="py-2">Sex</th>
               <th class="py-2">Relationship</th>
+              <th class="py-2">Occupation</th>
               <th class="py-2">Flags</th>
+              <th v-if="isSecretary" class="py-2">Actions</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="member in household.members" :key="member.member_id" class="border-t border-slate-100">
+            <tr v-for="member in activeMembers" :key="member.member_id" class="border-t border-slate-100">
               <td class="py-2">{{ member.full_name }}</td>
+              <td class="py-2">{{ member.birth_date || '—' }}</td>
               <td class="py-2">{{ member.age }}</td>
               <td class="py-2">{{ member.sex }}</td>
               <td class="py-2">{{ member.relationship }}</td>
+              <td class="py-2">{{ member.occupation || '—' }}</td>
               <td class="py-2 text-xs text-slate-500">
                 <span v-if="member.is_senior_citizen">Senior </span>
                 <span v-if="member.is_pwd">PWD </span>
                 <span v-if="member.is_pregnant">Pregnant </span>
                 <span v-if="member.is_child">Child</span>
               </td>
+              <td v-if="isSecretary" class="py-2 whitespace-nowrap">
+                <button type="button" @click="startEditMember(member)" class="text-blue-600 hover:text-blue-700 mr-3">Edit</button>
+                <button type="button" @click="handleArchiveMember(member)" class="text-red-600 hover:text-red-700">Archive</button>
+              </td>
             </tr>
           </tbody>
         </table>
-        <p v-if="household.members.length === 0" class="text-slate-400 text-sm">No members recorded yet.</p>
+        <p v-if="activeMembers.length === 0" class="text-slate-400 text-sm">No members recorded yet.</p>
       </div>
 
       <!-- Vulnerability Assessment -->
@@ -164,7 +182,7 @@
           </p>
 
           <form v-if="canCreateAssessment" @submit.prevent="handleCreateAssessment" class="space-y-4">
-            <div class="grid grid-cols-3 gap-4">
+            <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-medium text-slate-700 mb-1">House Material</label>
                 <select v-model="assessmentForm.house_material" required class="w-full rounded-lg border border-slate-300 px-3 py-2">
@@ -185,29 +203,26 @@
                   <option value="Cogon">Cogon</option>
                 </select>
               </div>
-              <div>
-                <label class="block text-sm font-medium text-slate-700 mb-1">Hazard Zone</label>
-                <select v-model="assessmentForm.hazard_zone" required class="w-full rounded-lg border border-slate-300 px-3 py-2">
-                  <option value="" disabled>Select</option>
-                  <option value="High">High</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Low">Low</option>
-                </select>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium text-slate-700 mb-1">Hazard Types (select all that apply)</label>
+              <div class="grid grid-cols-4 gap-3 text-sm">
+                <label class="flex items-center gap-2"><input type="checkbox" v-model="assessmentForm.flood_prone" /> Flood-prone</label>
+                <label class="flex items-center gap-2"><input type="checkbox" v-model="assessmentForm.storm_surge_prone" /> Storm surge-prone</label>
+                <label class="flex items-center gap-2"><input type="checkbox" v-model="assessmentForm.landslide_prone" /> Landslide-prone</label>
+                <label class="flex items-center gap-2"><input type="checkbox" v-model="assessmentForm.coastal_zone" /> Coastal zone</label>
               </div>
             </div>
 
-            <div class="grid grid-cols-4 gap-3 text-sm">
-              <label class="flex items-center gap-2"><input type="checkbox" v-model="assessmentForm.flood_prone" /> Flood-prone</label>
-              <label class="flex items-center gap-2"><input type="checkbox" v-model="assessmentForm.storm_surge_prone" /> Storm surge-prone</label>
-              <label class="flex items-center gap-2"><input type="checkbox" v-model="assessmentForm.landslide_prone" /> Landslide-prone</label>
-              <label class="flex items-center gap-2"><input type="checkbox" v-model="assessmentForm.coastal_zone" /> Coastal zone</label>
-            </div>
-
-            <div class="grid grid-cols-4 gap-3 text-sm">
-              <label class="flex items-center gap-2"><input type="checkbox" v-model="assessmentForm.has_senior_citizen" /> Has senior citizen</label>
-              <label class="flex items-center gap-2"><input type="checkbox" v-model="assessmentForm.has_pwd" /> Has PWD</label>
-              <label class="flex items-center gap-2"><input type="checkbox" v-model="assessmentForm.has_pregnant_member" /> Has pregnant member</label>
-              <label class="flex items-center gap-2"><input type="checkbox" v-model="assessmentForm.has_child" /> Has child</label>
+            <div class="rounded-lg bg-slate-50 p-3">
+              <p class="text-sm font-medium text-slate-700 mb-2">Vulnerable members (from Household Members list)</p>
+              <div class="grid grid-cols-4 gap-3 text-sm text-slate-600">
+                <span>Senior citizen: <strong>{{ memberDerivedFlags.has_senior_citizen ? 'Yes' : 'No' }}</strong></span>
+                <span>PWD: <strong>{{ memberDerivedFlags.has_pwd ? 'Yes' : 'No' }}</strong></span>
+                <span>Pregnant: <strong>{{ memberDerivedFlags.has_pregnant_member ? 'Yes' : 'No' }}</strong></span>
+                <span>Child: <strong>{{ memberDerivedFlags.has_child ? 'Yes' : 'No' }}</strong></span>
+              </div>
             </div>
 
             <button
@@ -222,7 +237,7 @@
 
         <!-- Assessment exists — Secretary/Kagawad full edit -->
         <form v-else-if="canEditFullAssessment" @submit.prevent="handleUpdateAssessment" class="space-y-4">
-          <div class="grid grid-cols-3 gap-4">
+          <div class="grid grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-slate-700 mb-1">House Material</label>
               <select v-model="assessmentForm.house_material" required class="w-full rounded-lg border border-slate-300 px-3 py-2">
@@ -241,28 +256,30 @@
                 <option value="Cogon">Cogon</option>
               </select>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-slate-700 mb-1">Hazard Zone</label>
-              <select v-model="assessmentForm.hazard_zone" required class="w-full rounded-lg border border-slate-300 px-3 py-2">
-                <option value="High">High</option>
-                <option value="Medium">Medium</option>
-                <option value="Low">Low</option>
-              </select>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Hazard Zone (select all that apply)</label>
+            <div class="grid grid-cols-4 gap-3 text-sm">
+              <label class="flex items-center gap-2"><input type="checkbox" v-model="assessmentForm.flood_prone" /> Flood-prone</label>
+              <label class="flex items-center gap-2"><input type="checkbox" v-model="assessmentForm.storm_surge_prone" /> Storm surge-prone</label>
+              <label class="flex items-center gap-2"><input type="checkbox" v-model="assessmentForm.landslide_prone" /> Landslide-prone</label>
+              <label class="flex items-center gap-2"><input type="checkbox" v-model="assessmentForm.coastal_zone" /> Coastal zone</label>
             </div>
+            <p class="mt-2 text-xs text-slate-500">
+              Calculated Hazard Zone: <span class="font-semibold text-slate-700">{{ latestIndicator.hazard_zone }}</span>
+              — derived automatically from the hazard types selected above, recalculated on save.
+            </p>
           </div>
 
-          <div class="grid grid-cols-4 gap-3 text-sm">
-            <label class="flex items-center gap-2"><input type="checkbox" v-model="assessmentForm.flood_prone" /> Flood-prone</label>
-            <label class="flex items-center gap-2"><input type="checkbox" v-model="assessmentForm.storm_surge_prone" /> Storm surge-prone</label>
-            <label class="flex items-center gap-2"><input type="checkbox" v-model="assessmentForm.landslide_prone" /> Landslide-prone</label>
-            <label class="flex items-center gap-2"><input type="checkbox" v-model="assessmentForm.coastal_zone" /> Coastal zone</label>
-          </div>
-
-          <div class="grid grid-cols-4 gap-3 text-sm">
-            <label class="flex items-center gap-2"><input type="checkbox" v-model="assessmentForm.has_senior_citizen" /> Has senior citizen</label>
-            <label class="flex items-center gap-2"><input type="checkbox" v-model="assessmentForm.has_pwd" /> Has PWD</label>
-            <label class="flex items-center gap-2"><input type="checkbox" v-model="assessmentForm.has_pregnant_member" /> Has pregnant member</label>
-            <label class="flex items-center gap-2"><input type="checkbox" v-model="assessmentForm.has_child" /> Has child</label>
+          <div class="rounded-lg bg-slate-50 p-3">
+            <p class="text-sm font-medium text-slate-700 mb-2">Vulnerable members (from Household Members list)</p>
+            <div class="grid grid-cols-4 gap-3 text-sm text-slate-600">
+              <span>Senior citizen: <strong>{{ memberDerivedFlags.has_senior_citizen ? 'Yes' : 'No' }}</strong></span>
+              <span>PWD: <strong>{{ memberDerivedFlags.has_pwd ? 'Yes' : 'No' }}</strong></span>
+              <span>Pregnant: <strong>{{ memberDerivedFlags.has_pregnant_member ? 'Yes' : 'No' }}</strong></span>
+              <span>Child: <strong>{{ memberDerivedFlags.has_child ? 'Yes' : 'No' }}</strong></span>
+            </div>
           </div>
 
           <button
@@ -274,25 +291,21 @@
           </button>
         </form>
 
-        <!-- Assessment exists — BHW limited edit -->
-        <form v-else-if="canEditHealthFields" @submit.prevent="handleUpdateHealthFields" class="space-y-4">
-          <p class="text-slate-500 text-sm mb-2">
-            You can update the health-related fields below. Structural and hazard details are managed by the Barangay Kagawad/Tanod.
+        <!-- Assessment exists — BHW view (health fields are derived from Household Members, nothing left to edit here) -->
+        <div v-else-if="canEditHealthFields" class="space-y-3">
+          <p class="text-slate-500 text-sm">
+            Health-related indicators are derived automatically from the Household Members list above.
+            Structural and hazard details are managed by the Barangay Kagawad/Tanod.
           </p>
-          <div class="grid grid-cols-4 gap-3 text-sm">
-            <label class="flex items-center gap-2"><input type="checkbox" v-model="healthFieldsForm.has_senior_citizen" /> Has senior citizen</label>
-            <label class="flex items-center gap-2"><input type="checkbox" v-model="healthFieldsForm.has_pwd" /> Has PWD</label>
-            <label class="flex items-center gap-2"><input type="checkbox" v-model="healthFieldsForm.has_pregnant_member" /> Has pregnant member</label>
-            <label class="flex items-center gap-2"><input type="checkbox" v-model="healthFieldsForm.has_child" /> Has child</label>
+          <div class="rounded-lg bg-slate-50 p-3">
+            <div class="grid grid-cols-4 gap-3 text-sm text-slate-600">
+              <span>Senior citizen: <strong>{{ memberDerivedFlags.has_senior_citizen ? 'Yes' : 'No' }}</strong></span>
+              <span>PWD: <strong>{{ memberDerivedFlags.has_pwd ? 'Yes' : 'No' }}</strong></span>
+              <span>Pregnant: <strong>{{ memberDerivedFlags.has_pregnant_member ? 'Yes' : 'No' }}</strong></span>
+              <span>Child: <strong>{{ memberDerivedFlags.has_child ? 'Yes' : 'No' }}</strong></span>
+            </div>
           </div>
-          <button
-            type="submit"
-            :disabled="isSavingAssessment"
-            class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white rounded-lg px-4 py-2 text-sm"
-          >
-            {{ isSavingAssessment ? 'Saving...' : 'Update Health Fields' }}
-          </button>
-        </form>
+        </div>
 
         <!-- Read-only (MDRRMO) -->
         <div v-else class="grid grid-cols-2 gap-3 text-sm text-slate-700">
@@ -334,6 +347,7 @@ const authStore = useAuthStore()
 const household = ref(null)
 const isLoading = ref(true)
 const showMemberForm = ref(false)
+const editingMemberId = ref(null)
 const isSavingAssessment = ref(false)
 const assessmentMessage = ref('')
 const assessmentSuccess = ref(false)
@@ -343,9 +357,11 @@ const residentFormError = ref('')
 
 const memberForm = reactive({
   full_name: '',
+  birth_date: '',
   age: null,
   sex: '',
   relationship: '',
+  occupation: '',
   is_senior_citizen: false,
   is_pwd: false,
   is_pregnant: false,
@@ -363,22 +379,10 @@ const residentForm = reactive({
 const assessmentForm = reactive({
   house_material: '',
   roof_material: '',
-  hazard_zone: '',
   flood_prone: false,
   storm_surge_prone: false,
   landslide_prone: false,
   coastal_zone: false,
-  has_senior_citizen: false,
-  has_pwd: false,
-  has_pregnant_member: false,
-  has_child: false,
-})
-
-const healthFieldsForm = reactive({
-  has_senior_citizen: false,
-  has_pwd: false,
-  has_pregnant_member: false,
-  has_child: false,
 })
 
 const role = computed(() => authStore.user?.role)
@@ -392,6 +396,35 @@ const latestIndicator = computed(() => {
   return household.value.vulnerability_indicators[0]
 })
 
+const activeMembers = computed(() => (household.value?.members || []).filter((member) => !member.is_archived))
+
+const memberDerivedFlags = computed(() => ({
+  has_senior_citizen: activeMembers.value.some((member) => member.is_senior_citizen),
+  has_pwd: activeMembers.value.some((member) => member.is_pwd),
+  has_pregnant_member: activeMembers.value.some((member) => member.is_pregnant),
+  has_child: activeMembers.value.some((member) => member.is_child),
+}))
+
+function calculateAge(birthDateString) {
+  const birthDate = new Date(birthDateString)
+  if (Number.isNaN(birthDate.getTime())) return null
+  const today = new Date()
+  let age = today.getFullYear() - birthDate.getFullYear()
+  const monthDiff = today.getMonth() - birthDate.getMonth()
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--
+  }
+  return age
+}
+
+function handleBirthDateChange() {
+  if (!memberForm.birth_date) return
+  const calculatedAge = calculateAge(memberForm.birth_date)
+  if (calculatedAge !== null) {
+    memberForm.age = calculatedAge
+  }
+}
+
 function priorityBadgeClass(priority) {
   if (priority === 'High') return 'bg-red-100 text-red-700'
   if (priority === 'Medium') return 'bg-yellow-100 text-yellow-700'
@@ -404,31 +437,75 @@ async function loadHousehold() {
   household.value = response.data
   if (latestIndicator.value) {
     Object.assign(assessmentForm, latestIndicator.value)
-    Object.assign(healthFieldsForm, {
-      has_senior_citizen: latestIndicator.value.has_senior_citizen,
-      has_pwd: latestIndicator.value.has_pwd,
-      has_pregnant_member: latestIndicator.value.has_pregnant_member,
-      has_child: latestIndicator.value.has_child,
-    })
   }
   isLoading.value = false
 }
 
 onMounted(loadHousehold)
 
-async function handleAddMember() {
-  await householdsApi.createMember(route.params.id, memberForm)
+function resetMemberForm() {
   Object.assign(memberForm, {
     full_name: '',
+    birth_date: '',
     age: null,
     sex: '',
     relationship: '',
+    occupation: '',
     is_senior_citizen: false,
     is_pwd: false,
     is_pregnant: false,
     is_child: false,
   })
+  editingMemberId.value = null
+}
+
+function toggleMemberForm() {
+  if (showMemberForm.value) {
+    showMemberForm.value = false
+    resetMemberForm()
+  } else {
+    resetMemberForm()
+    showMemberForm.value = true
+  }
+}
+
+function startEditMember(member) {
+  editingMemberId.value = member.member_id
+  Object.assign(memberForm, {
+    full_name: member.full_name,
+    birth_date: member.birth_date || '',
+    age: member.age,
+    sex: member.sex,
+    relationship: member.relationship,
+    occupation: member.occupation || '',
+    is_senior_citizen: member.is_senior_citizen,
+    is_pwd: member.is_pwd,
+    is_pregnant: member.is_pregnant,
+    is_child: member.is_child,
+  })
+  showMemberForm.value = true
+}
+
+function cancelMemberForm() {
   showMemberForm.value = false
+  resetMemberForm()
+}
+
+async function handleSaveMember() {
+  const payload = { ...memberForm, birth_date: memberForm.birth_date || null }
+  if (editingMemberId.value) {
+    await householdsApi.updateMember(route.params.id, editingMemberId.value, payload)
+  } else {
+    await householdsApi.createMember(route.params.id, payload)
+  }
+  showMemberForm.value = false
+  resetMemberForm()
+  await loadHousehold()
+}
+
+async function handleArchiveMember(member) {
+  if (!confirm(`Archive ${member.full_name}? This can be reversed later by an administrator.`)) return
+  await householdsApi.archiveMember(route.params.id, member.member_id)
   await loadHousehold()
 }
 
@@ -486,24 +563,6 @@ async function handleUpdateAssessment() {
   } catch (error) {
     assessmentSuccess.value = false
     assessmentMessage.value = 'Failed to update assessment.'
-  } finally {
-    isSavingAssessment.value = false
-  }
-}
-
-async function handleUpdateHealthFields() {
-  isSavingAssessment.value = true
-  assessmentMessage.value = ''
-  try {
-    await householdsApi.updateVulnerabilityIndicator(route.params.id, latestIndicator.value.indicator_id, healthFieldsForm)
-    assessmentSuccess.value = true
-    assessmentMessage.value = 'Health fields updated.'
-    await loadHousehold()
-  } catch (error) {
-    assessmentSuccess.value = false
-    assessmentMessage.value = error.response?.data
-      ? Object.values(error.response.data).flat().join(' ')
-      : 'Failed to update health fields.'
   } finally {
     isSavingAssessment.value = false
   }

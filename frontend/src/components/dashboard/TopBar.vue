@@ -21,36 +21,109 @@
       <div class="ml-6 flex items-center gap-4">
         <div class="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700">
           <span class="h-2 w-2 rounded-full bg-emerald-500" />
-          Baclayon, Bohol
+          {{ locationLabel }}
         </div>
-        <button type="button" class="relative rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700" aria-label="Notifications">
-          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 12h4" />
-          </svg>
-          <span class="absolute right-2 top-2 h-2 w-2 rounded-full bg-red-500 ring-2 ring-white" />
-        </button>
-        <span class="rounded-full bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-700">Advisory Active</span>
-        <router-link to="/profile" class="flex items-center gap-2 text-right">
-          <div class="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-blue-100 text-xs font-bold text-blue-700">
-            <img v-if="authStore.user?.avatar" :src="authStore.user.avatar" alt="" class="h-full w-full object-cover" />
-            <span v-else>{{ userInitials }}</span>
+
+        <div ref="profileMenuRef" class="relative">
+          <button
+            type="button"
+            class="flex items-center gap-2 rounded-lg text-right"
+            :aria-expanded="isProfileMenuOpen"
+            aria-haspopup="true"
+            @click="toggleProfileMenu"
+          >
+            <div class="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-blue-100 text-xs font-bold text-blue-700">
+              <img v-if="authStore.user?.avatar" :src="authStore.user.avatar" alt="" class="h-full w-full object-cover" />
+              <span v-else>{{ userInitials }}</span>
+            </div>
+            <div>
+              <p class="text-sm font-semibold text-slate-800">{{ displayName }}</p>
+              <p class="text-xs text-slate-500">{{ authStore.user?.role }}</p>
+            </div>
+          </button>
+
+          <div
+            v-if="isProfileMenuOpen"
+            class="absolute right-0 top-full z-30 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white py-2 shadow-lg"
+          >
+            <div class="flex flex-col text-sm">
+              <router-link to="/profile" class="menu-link" @click="closeProfileMenu">Profile Settings</router-link>
+              <button type="button" class="menu-link text-left text-red-600 hover:text-red-700" @click="handleLogout">Logout</button>
+            </div>
           </div>
-          <div>
-            <p class="text-sm font-semibold text-slate-800">{{ displayName }}</p>
-            <p class="text-xs text-slate-500">{{ authStore.user?.role }}</p>
-          </div>
-        </router-link>
+        </div>
       </div>
     </header>
+
+    <ConfirmActionDialog
+      v-if="showLogoutConfirm"
+      title="Log out of SAFE-ALERT?"
+      message="You will need to sign in again to access your account."
+      confirm-label="Log out"
+      confirm-class="bg-red-600 hover:bg-red-700"
+      title-id="topbar-logout-confirmation"
+      @cancel="showLogoutConfirm = false"
+      @confirm="confirmLogout"
+    />
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import AppNavBar from '@/components/AppNavBar.vue'
+import ConfirmActionDialog from '@/components/ConfirmActionDialog.vue'
 
 const authStore = useAuthStore()
+const router = useRouter()
+
 const displayName = computed(() => authStore.user?.first_name || authStore.user?.username)
 const userInitials = computed(() => displayName.value?.slice(0, 2).toUpperCase() || 'U')
+const locationLabel = computed(() => {
+  const barangayName = authStore.user?.barangay_name
+  return barangayName ? `${barangayName}, Baclayon, Bohol` : 'Baclayon, Bohol'
+})
+
+const isProfileMenuOpen = ref(false)
+const profileMenuRef = ref(null)
+const showLogoutConfirm = ref(false)
+
+function toggleProfileMenu() {
+  isProfileMenuOpen.value = !isProfileMenuOpen.value
+}
+
+function closeProfileMenu() {
+  isProfileMenuOpen.value = false
+}
+
+function handleDocumentClick(event) {
+  if (profileMenuRef.value && !profileMenuRef.value.contains(event.target)) {
+    isProfileMenuOpen.value = false
+  }
+}
+
+onMounted(() => document.addEventListener('click', handleDocumentClick))
+onBeforeUnmount(() => document.removeEventListener('click', handleDocumentClick))
+
+function handleLogout() {
+  closeProfileMenu()
+  showLogoutConfirm.value = true
+}
+
+async function confirmLogout() {
+  showLogoutConfirm.value = false
+  await authStore.logout()
+  router.push({ name: 'login' })
+}
 </script>
+
+<style scoped>
+.menu-link {
+  @apply border-b border-slate-100 px-3 py-2.5 font-medium text-slate-700 transition-colors hover:bg-slate-50 hover:text-blue-600;
+}
+
+.menu-link:last-child {
+  @apply border-b-0;
+}
+</style>

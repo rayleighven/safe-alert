@@ -21,12 +21,18 @@ class AnnouncementSerializer(serializers.ModelSerializer):
             'published_at', 'expires_at', 'created_at', 'updated_at',
             'is_archived', 'archived_at', 'categories',
         ]
-        # barangay/posted_by set server-side from the requesting user, same
-        # pattern as every other module.
+        # posted_by is always server-set from the requesting user. barangay
+        # is too, EXCEPT for the MDRRMO Officer (whose own .barangay is None,
+        # spanning both) — for them it's a required, explicitly-chosen input,
+        # enforced/validated in AnnouncementViewSet._resolve_announcement_barangay,
+        # not here. It stays out of read_only_fields so that field can carry
+        # client input; every other role's submitted barangay (if any) is
+        # still fully discarded and overridden server-side, same as before.
         read_only_fields = [
-            'announcement_id', 'barangay', 'posted_by',
+            'announcement_id', 'posted_by',
             'created_at', 'updated_at', 'is_archived', 'archived_at',
         ]
+        extra_kwargs = {'barangay': {'required': False}}
 
     def create(self, validated_data):
         categories_data = validated_data.pop('categories', [])

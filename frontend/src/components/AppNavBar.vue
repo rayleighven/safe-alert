@@ -30,9 +30,6 @@
       <div class="flex flex-col text-sm">
         <router-link :to="{ name: 'dashboard' }" class="menu-link" @click="closeMenu">Dashboard</router-link>
         <router-link v-if="canViewHouseholds" to="/households" class="menu-link" @click="closeMenu">Households</router-link>
-        <router-link v-if="canViewVulnerabilityDashboard" to="/households/dashboard" class="menu-link" @click="closeMenu">
-          Vulnerability Dashboard
-        </router-link>
         <router-link to="/evacuation-centers" class="menu-link" @click="closeMenu">Evacuation Centers</router-link>
         <router-link to="/announcements" class="menu-link" @click="closeMenu">Announcements</router-link>
         <router-link v-if="canViewSmsBroadcasts" to="/sms-notifications" class="menu-link" @click="closeMenu">SMS Broadcasts</router-link>
@@ -79,16 +76,6 @@ const canViewHouseholds = computed(() => {
     'Barangay Healthworker',
     'MDRRMO Officer',
     'Resident',
-  ].includes(role)
-})
-
-const canViewVulnerabilityDashboard = computed(() => {
-  const role = authStore.user?.role
-  return [
-    'Barangay Secretary',
-    'Barangay Kagawad/Tanod',
-    'Barangay Healthworker',
-    'MDRRMO Officer',
   ].includes(role)
 })
 

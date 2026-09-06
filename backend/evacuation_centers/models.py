@@ -17,6 +17,8 @@ class EvacuationCenter(models.Model):
     status = models.CharField(max_length=20, choices=CenterStatus.choices, default=CenterStatus.ACTIVE)
     contact_person = models.CharField(max_length=100, blank=True, null=True)
     contact_number = models.CharField(max_length=20, blank=True, null=True)
+    photo = models.ImageField(upload_to='evacuation_center_photos/', blank=True, null=True)
+    photo_url = models.URLField(blank=True, null=True)
     managed_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.PROTECT,

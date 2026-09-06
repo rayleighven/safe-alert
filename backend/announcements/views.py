@@ -48,15 +48,39 @@ class AnnouncementViewSet(viewsets.ModelViewSet):
             qs = qs.filter(is_public=True)
         return qs
 
+    def _resolve_announcement_barangay(self, serializer):
+        """
+        barangay is server-set from the requester for every role except the
+        MDRRMO Officer, whose own `.barangay` is intentionally None (they're
+        municipal-level, spanning both barangays — same as every other
+        MDRRMO read-access in this app) — they must explicitly pick which
+        barangay the announcement belongs to. The submitted value is already
+        constrained to a real Barangay row by the serializer field's own
+        queryset (Barangay.objects.all()) — the same unrestricted "both
+        barangays" scope MDRRMO already has everywhere else; there's no
+        narrower per-user barangay-assignment table in this schema to check
+        against.
+        """
+        user = self.request.user
+        if user.role == UserRole.MDRRMO_OFFICER:
+            barangay = serializer.validated_data.get('barangay')
+            if barangay is None:
+                raise ValidationError({'barangay': 'Select the barangay this announcement belongs to.'})
+            return barangay
+        return user.barangay
+
     def perform_create(self, serializer):
-        instance = serializer.save(barangay=self.request.user.barangay, posted_by=self.request.user)
+        instance = serializer.save(
+            barangay=self._resolve_announcement_barangay(serializer),
+            posted_by=self.request.user,
+        )
         write_audit_log(
             user=self.request.user, action=AuditAction.CREATE,
             table_affected='announcements', record_id=instance.announcement_id, request=self.request,
         )
 
     def perform_update(self, serializer):
-        instance = serializer.save()
+        instance = serializer.save(barangay=self._resolve_announcement_barangay(serializer))
         write_audit_log(
             user=self.request.user, action=AuditAction.UPDATE,
             table_affected='announcements', record_id=instance.announcement_id, request=self.request,

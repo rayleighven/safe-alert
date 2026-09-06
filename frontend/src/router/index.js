@@ -11,7 +11,6 @@ import DashboardView from '@/views/DashboardView.vue'
 import HouseholdListView from '@/views/households/HouseholdListView.vue'
 import HouseholdFormView from '@/views/households/HouseholdFormView.vue'
 import HouseholdDetailView from '@/views/households/HouseholdDetailView.vue'
-import HouseholdDashboardView from '@/views/households/HouseholdDashboardView.vue'
 
 import EvacuationCenterListView from '@/views/evacuation-centers/EvacuationCenterListView.vue'
 import EvacuationCenterFormView from '@/views/evacuation-centers/EvacuationCenterFormView.vue'
@@ -63,12 +62,6 @@ const routes = [
     path: '/households/new',
     name: 'household-new',
     component: HouseholdFormView,
-    meta: { requiresAuth: true },
-  },
-  {
-    path: '/households/dashboard',
-    name: 'household-dashboard',
-    component: HouseholdDashboardView,
     meta: { requiresAuth: true },
   },
   {

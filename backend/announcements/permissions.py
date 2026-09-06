@@ -6,8 +6,11 @@ from core.choices import UserRole
 class AnnouncementPermission(BasePermission):
     """
     - Barangay Secretary: full CRUD, own barangay.
-    - BDRRMC Chairperson, Kagawad/Tanod, Healthworker, MDRRMO: read-only —
-      see both public and non-public announcements.
+    - MDRRMO Officer: full CRUD, across both barangays — since their account
+      isn't tied to a single barangay, they pick one explicitly per
+      announcement (see AnnouncementViewSet._resolve_announcement_barangay).
+    - BDRRMC Chairperson, Kagawad/Tanod, Healthworker: read-only — see both
+      public and non-public announcements.
     - Resident: read-only, PUBLIC announcements only, own barangay (queryset-scoped).
     """
 
@@ -16,7 +19,7 @@ class AnnouncementPermission(BasePermission):
             return False
         if request.method in SAFE_METHODS:
             return True
-        return request.user.role == UserRole.BARANGAY_SECRETARY
+        return request.user.role in [UserRole.BARANGAY_SECRETARY, UserRole.MDRRMO_OFFICER]
 
 
 class SMSNotificationPermission(BasePermission):

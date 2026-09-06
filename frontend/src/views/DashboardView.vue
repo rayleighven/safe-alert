@@ -28,12 +28,9 @@
 
           <section class="mt-6 grid gap-6 xl:grid-cols-[1.4fr_0.9fr]">
             <article class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div class="flex items-center justify-between">
-                <div>
-                  <h3 class="text-lg font-bold text-slate-900">Priority overview</h3>
-                  <p class="mt-1 text-sm text-slate-500">Households by evacuation priority</p>
-                </div>
-                <router-link v-if="canViewVulnerabilityDashboard" to="/households/dashboard" class="text-sm font-semibold text-blue-600 hover:text-blue-700">View dashboard</router-link>
+              <div>
+                <h3 class="text-lg font-bold text-slate-900">Priority overview</h3>
+                <p class="mt-1 text-sm text-slate-500">Households by evacuation priority</p>
               </div>
               <div class="mt-6 space-y-4">
                 <div v-for="priority in priorities" :key="priority.label" class="flex items-center gap-4">
@@ -45,6 +42,9 @@
                   <span class="w-7 text-right text-sm font-bold text-slate-900">{{ priority.count }}</span>
                 </div>
               </div>
+              <p v-if="unassessedCount > 0" class="mt-4 text-xs text-slate-400">
+                {{ unassessedCount }} household(s) not yet assessed.
+              </p>
             </article>
 
             <article class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -65,16 +65,55 @@
               </div>
             </article>
           </section>
+
+          <section v-if="canViewVulnerabilityDetails" class="mt-6">
+            <article class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <h3 class="text-lg font-bold text-slate-900">Highest priority households</h3>
+              <p class="mt-1 text-sm text-slate-500">Top households by evacuation priority score</p>
+              <table class="mt-6 w-full text-sm">
+                <thead class="text-left text-slate-500">
+                  <tr>
+                    <th class="py-2">Household #</th>
+                    <th class="py-2">Head of Family</th>
+                    <th class="py-2">Purok</th>
+                    <th class="py-2">Priority</th>
+                    <th class="py-2">Score</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    v-for="household in topPriorityHouseholds"
+                    :key="household.household_id"
+                    class="cursor-pointer border-t border-slate-100 hover:bg-slate-50"
+                    @click="router.push({ name: 'household-detail', params: { id: household.household_id } })"
+                  >
+                    <td class="py-2 font-medium text-slate-800">{{ household.household_number }}</td>
+                    <td class="py-2">{{ household.head_of_family }}</td>
+                    <td class="py-2">{{ household.purok }}</td>
+                    <td class="py-2">
+                      <span :class="priorityBadgeClass(household.evacuation_priority)" class="rounded-full px-2 py-1 text-xs font-medium">
+                        {{ household.evacuation_priority }}
+                      </span>
+                    </td>
+                    <td class="py-2">{{ household.priority_score }}%</td>
+                  </tr>
+                </tbody>
+              </table>
+              <p v-if="topPriorityHouseholds.length === 0" class="text-sm text-slate-400">No assessed households yet.</p>
+            </article>
+          </section>
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import * as householdsApi from '@/services/householdsApi'
 import * as evacuationCentersApi from '@/services/evacuationCentersApi'
 
 const authStore = useAuthStore()
+const router = useRouter()
 const households = ref([])
 const centers = ref([])
 
@@ -91,7 +130,7 @@ const roleDescription = computed(() => roleDescriptions[authStore.user?.role] ||
 const canViewHouseholds = computed(() => [
   'Barangay Secretary', 'Barangay Kagawad/Tanod', 'Barangay Healthworker', 'MDRRMO Officer', 'Resident',
 ].includes(authStore.user?.role))
-const canViewVulnerabilityDashboard = computed(() => [
+const canViewVulnerabilityDetails = computed(() => [
   'Barangay Secretary', 'Barangay Kagawad/Tanod', 'Barangay Healthworker', 'MDRRMO Officer',
 ].includes(authStore.user?.role))
 
@@ -100,6 +139,17 @@ const priorityCounts = computed(() => ({
   Medium: households.value.filter((household) => household.evacuation_priority === 'Medium').length,
   Low: households.value.filter((household) => household.evacuation_priority === 'Low').length,
 }))
+const unassessedCount = computed(() => households.value.filter((household) => !household.evacuation_priority).length)
+const topPriorityHouseholds = computed(() => households.value
+  .filter((household) => household.evacuation_priority)
+  .sort((a, b) => (b.priority_score ?? 0) - (a.priority_score ?? 0))
+  .slice(0, 10))
+
+function priorityBadgeClass(priority) {
+  if (priority === 'High') return 'bg-red-100 text-red-700'
+  if (priority === 'Medium') return 'bg-yellow-100 text-yellow-700'
+  return 'bg-green-100 text-green-700'
+}
 const totalResidents = computed(() => households.value.reduce((total, household) => total + (Number(household.total_members) || 0), 0))
 const activeCenters = computed(() => centers.value.filter((center) => center.status === 'Active').length)
 const metrics = computed(() => [
