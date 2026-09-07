@@ -47,20 +47,28 @@
               <p class="text-xs text-slate-400 mb-4">Source: {{ map.source }}</p>
 
               <div class="flex items-center justify-between">
-                <a
-                  v-if="map.map_url"
-                  :href="map.map_url"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="text-sm text-blue-600 hover:text-blue-700 font-medium inline-flex items-center gap-1"
-                >
-                  Open Map
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
-                    <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
-                    <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
-                  </svg>
-                </a>
-                <span v-else></span>
+                <div class="flex items-center gap-3">
+                  <a
+                    v-if="map.map_url"
+                    :href="map.map_url"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="text-sm text-blue-600 hover:text-blue-700 font-medium inline-flex items-center gap-1"
+                  >
+                    Open Map
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                      <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                      <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                    </svg>
+                  </a>
+                  <router-link
+                    v-if="map.source === 'Project NOAH'"
+                    :to="{ name: 'hazard-map-interactive', params: { id: map.map_id } }"
+                    class="text-sm text-emerald-600 hover:text-emerald-700 font-medium"
+                  >
+                    Interactive Map
+                  </router-link>
+                </div>
                 <div v-if="isSecretary" class="flex gap-3 text-xs">
                   <router-link :to="{ name: 'hazard-map-edit', params: { id: map.map_id } }" class="text-slate-500 hover:text-blue-600">
                     Edit

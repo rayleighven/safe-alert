@@ -143,6 +143,13 @@ const routes = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/hazard-maps/:id/interactive',
+    name: 'hazard-map-interactive',
+    // Lazy-loaded: pulls in MapLibre GL, which is large and only needed here.
+    component: () => import('@/views/maps/HazardMapInteractiveView.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/reports',
     name: 'reports',
     component: ReportsView,
