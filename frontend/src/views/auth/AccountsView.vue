@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="mx-auto max-w-6xl p-6">
     <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div>
@@ -95,12 +95,12 @@
                   </div>
                   <div>
                     <p class="font-semibold text-slate-800">{{ account.first_name || account.last_name ? `${account.first_name} ${account.last_name}`.trim() : account.username }}</p>
-                    <p class="text-xs text-slate-500">@{{ account.username }}<span v-if="account.email"> · {{ account.email }}</span></p>
+                    <p class="text-xs text-slate-500">@{{ account.username }}<a v-if="account.email" :href="`mailto:${account.email}`" class="hover:text-blue-700">{{ account.email }}</a></p>
                   </div>
                 </div>
               </td>
               <td class="px-5 py-4 text-slate-700">{{ account.role }}</td>
-              <td class="px-5 py-4 text-slate-600">{{ account.assigned_purok || '—' }}</td>
+              <td class="px-5 py-4 text-slate-600">{{ account.assigned_purok || 'â€”' }}</td>
               <td class="px-5 py-4">
                 <label class="sr-only" :for="`status-${account.user_id}`">Account status for {{ account.username }}</label>
                 <select

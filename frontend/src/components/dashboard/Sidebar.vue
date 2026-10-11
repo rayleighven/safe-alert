@@ -1,11 +1,10 @@
 <template>
   <aside class="hidden h-full w-72 shrink-0 flex-col bg-[#0d2f57] text-slate-200 shadow-xl lg:flex">
     <div class="flex h-[72px] items-center gap-3 border-b border-white/10 px-6">
-      <img :src="safeAlertLogo" alt="SAFE-ALERT" class="h-9 w-9 object-contain" />
-      <div>
-        <p class="text-base font-bold tracking-wide text-white">SAFE-ALERT</p>
-        <p class="text-xs text-blue-200">Baclayon, Bohol</p>
-      </div>
+      <router-link :to="{ name: 'dashboard' }" class="flex min-w-0 items-center gap-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-white" aria-label="SAFE-ALERT dashboard">
+        <img :src="safeAlertLogo" alt="" class="h-9 w-9 object-contain" />
+        <div><p class="text-base font-bold tracking-wide text-white">SAFE-ALERT</p><p class="text-xs text-blue-200">Baclayon, Bohol</p></div>
+      </router-link>
     </div>
 
     <nav class="flex-1 overflow-y-auto px-3 py-5">

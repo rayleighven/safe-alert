@@ -16,6 +16,7 @@ class HouseholdPermission(BasePermission):
     - Barangay Secretary: full CRUD, own barangay.
     - Barangay Kagawad/Tanod, Barangay Healthworker: read-only on Households
       themselves (their write access lives on VulnerabilityIndicator).
+    - BDRRMC Chairperson: read-only, own barangay.
     - MDRRMO Officer: read-only, both barangays.
     - Resident: read-only, and ONLY for the single household their account is
       linked to (accounts are created by the Secretary via a dedicated
@@ -34,6 +35,7 @@ class HouseholdPermission(BasePermission):
                 UserRole.BARANGAY_SECRETARY,
                 UserRole.BARANGAY_KAGAWAD_TANOD,
                 UserRole.BARANGAY_HEALTHWORKER,
+                UserRole.BDRRMC_CHAIRPERSON,
                 UserRole.MDRRMO_OFFICER,
                 UserRole.RESIDENT,
             ]

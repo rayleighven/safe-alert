@@ -5,18 +5,7 @@
     </div>
 
     <header class="hidden h-16 items-center justify-between border-b border-slate-200 bg-white px-8 lg:flex">
-      <label class="relative block w-full max-w-sm">
-        <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-          <circle cx="11" cy="11" r="6" />
-          <path stroke-linecap="round" d="m16 16 4 4" />
-        </svg>
-        <input
-          type="search"
-          aria-label="Search SAFE-ALERT"
-          placeholder="Search households, centers, reports..."
-          class="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-9 pr-3 text-sm text-slate-700 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
-        />
-      </label>
+      <p class="text-sm font-semibold text-slate-700">Community Readiness</p>
 
       <div class="ml-6 flex items-center gap-4">
         <div class="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700">

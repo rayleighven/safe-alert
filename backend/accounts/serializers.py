@@ -107,6 +107,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 class ChangePasswordSerializer(serializers.Serializer):
     current_password = serializers.CharField(write_only=True)
     new_password = serializers.CharField(write_only=True)
+    confirm_password = serializers.CharField(write_only=True)
 
     def validate_new_password(self, value):
         validate_password(value)
@@ -117,6 +118,11 @@ class ChangePasswordSerializer(serializers.Serializer):
         if not user.check_password(value):
             raise serializers.ValidationError('Current password is incorrect.')
         return value
+
+    def validate(self, attrs):
+        if attrs.get('new_password') != attrs.get('confirm_password'):
+            raise serializers.ValidationError({'confirm_password': 'Passwords do not match.'})
+        return attrs
 
     def save(self, **kwargs):
         user = self.context['request'].user
@@ -149,6 +155,16 @@ class UserAdminSerializer(serializers.ModelSerializer):
     def validate_password(self, value):
         if value:
             validate_password(value)
+        return value
+
+    def validate_email(self, value):
+        if not value:
+            return value
+        existing = User.objects.filter(email__iexact=value)
+        if self.instance:
+            existing = existing.exclude(pk=self.instance.pk)
+        if existing.exists():
+            raise serializers.ValidationError('This email is already in use.')
         return value
 
     def validate(self, attrs):

@@ -20,10 +20,11 @@ export function updateProfile(data) {
   return api.patch('/auth/profile/', data)
 }
 
-export function changePassword(currentPassword, newPassword) {
+export function changePassword(currentPassword, newPassword, confirmPassword) {
   return api.post('/auth/profile/change-password/', {
     current_password: currentPassword,
     new_password: newPassword,
+    confirm_password: confirmPassword,
   })
 }
 

@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <div class="min-h-screen bg-slate-50">
     <AppNavBar />
 
@@ -33,17 +33,17 @@
         <img :src="center.photo || center.photo_url" :alt="`${center.name} photo`" class="h-56 w-full object-cover" />
       </div>
 
-      <div class="bg-white rounded-xl shadow-sm p-6 mb-6 grid grid-cols-2 gap-4 text-sm">
+      <div class="bg-white rounded-xl shadow-sm p-6 mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
         <div><span class="text-slate-500">Capacity</span><p class="text-slate-800">{{ center.capacity }}</p></div>
         <div><span class="text-slate-500">Current Occupancy</span><p class="text-slate-800">{{ center.current_occupancy }}</p></div>
-        <div><span class="text-slate-500">Contact Person</span><p class="text-slate-800">{{ center.contact_person || '—' }}</p></div>
-        <div><span class="text-slate-500">Contact Number</span><p class="text-slate-800">{{ center.contact_number || '—' }}</p></div>
+        <div><span class="text-slate-500">Contact Person</span><p class="text-slate-800">{{ center.contact_person || 'â€”' }}</p></div>
+        <div><span class="text-slate-500">Contact Number</span><p class="text-slate-800"><a v-if="center.contact_number" :href="`tel:${center.contact_number}`" class="hover:text-blue-700">{{ center.contact_number }}</a><span v-else>Not provided</span></p></div>
       </div>
 
       <!-- Kagawad quick update: capacity/occupancy/status only -->
       <div v-if="isKagawad" class="bg-white rounded-xl shadow-sm p-6 mb-6">
         <h2 class="text-lg font-semibold text-slate-800 mb-4">Update Capacity / Occupancy / Status</h2>
-        <form @submit.prevent="handleKagawadUpdate" class="grid grid-cols-3 gap-4">
+        <form @submit.prevent="handleKagawadUpdate" class="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">Capacity</label>
             <input v-model.number="quickForm.capacity" type="number" min="0" required class="w-full rounded-lg border border-slate-300 px-3 py-2" />
@@ -82,7 +82,7 @@
           </button>
         </div>
 
-        <form v-if="showRecordForm" @submit.prevent="handleAddRecord" class="grid grid-cols-2 gap-3 mb-4 p-4 bg-slate-50 rounded-lg">
+        <form v-if="showRecordForm" @submit.prevent="handleAddRecord" class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 p-4 bg-slate-50 rounded-lg">
           <select v-model="recordForm.disaster" required class="rounded-lg border border-slate-300 px-3 py-2">
             <option value="" disabled>Select Disaster</option>
             <option v-for="d in disasters" :key="d.disaster_id" :value="d.disaster_id">{{ d.name }} ({{ d.status }})</option>
@@ -191,7 +191,7 @@ function statusBadgeClass(status) {
 }
 
 function formatDate(dateStr) {
-  if (!dateStr) return '—'
+  if (!dateStr) return 'â€”'
   return new Date(dateStr).toLocaleString()
 }
 

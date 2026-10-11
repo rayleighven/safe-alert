@@ -35,10 +35,10 @@
       </div>
 
       <!-- Household Info -->
-      <div class="bg-white rounded-xl shadow-sm p-6 mb-6 grid grid-cols-2 gap-4 text-sm">
+      <div class="bg-white rounded-xl shadow-sm p-6 mb-6 grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
         <div>
           <span class="text-slate-500">Contact Number</span>
-          <p class="text-slate-800">{{ household.contact_number }}</p>
+          <p class="text-slate-800"><a :href="`tel:${household.contact_number}`" class="hover:text-blue-700">{{ household.contact_number }}</a></p>
         </div>
         <div>
           <span class="text-slate-500">Total Members</span>
@@ -72,7 +72,7 @@
             + Create Resident Account
           </button>
 
-          <form v-else @submit.prevent="handleCreateResident" class="grid grid-cols-2 gap-3 p-4 bg-slate-50 rounded-lg">
+          <form v-else @submit.prevent="handleCreateResident" class="grid grid-cols-1 sm:grid-cols-2 gap-3 p-4 bg-slate-50 rounded-lg">
             <input v-model="residentForm.username" type="text" placeholder="Username" required class="rounded-lg border border-slate-300 px-3 py-2" />
             <input v-model="residentForm.email" type="email" placeholder="Email (optional)" class="rounded-lg border border-slate-300 px-3 py-2" />
             <input v-model="residentForm.first_name" type="text" placeholder="First Name" class="rounded-lg border border-slate-300 px-3 py-2" />
@@ -105,7 +105,7 @@
         <form
           v-if="showMemberForm"
           @submit.prevent="handleSaveMember"
-          class="grid grid-cols-2 gap-3 mb-4 p-4 bg-slate-50 rounded-lg"
+          class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 p-4 bg-slate-50 rounded-lg"
         >
           <input v-model="memberForm.full_name" type="text" placeholder="Full Name" required class="rounded-lg border border-slate-300 px-3 py-2" />
           <input v-model="memberForm.birth_date" type="date" @change="handleBirthDateChange" class="rounded-lg border border-slate-300 px-3 py-2" />
@@ -182,7 +182,7 @@
           </p>
 
           <form v-if="canCreateAssessment" @submit.prevent="handleCreateAssessment" class="space-y-4">
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-medium text-slate-700 mb-1">House Material</label>
                 <select v-model="assessmentForm.house_material" required class="w-full rounded-lg border border-slate-300 px-3 py-2">
@@ -207,7 +207,7 @@
 
             <div>
               <label class="block text-sm font-medium text-slate-700 mb-1">Hazard Types (select all that apply)</label>
-              <div class="grid grid-cols-4 gap-3 text-sm">
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
                 <label class="flex items-center gap-2"><input type="checkbox" v-model="assessmentForm.flood_prone" /> Flood-prone</label>
                 <label class="flex items-center gap-2"><input type="checkbox" v-model="assessmentForm.storm_surge_prone" /> Storm surge-prone</label>
                 <label class="flex items-center gap-2"><input type="checkbox" v-model="assessmentForm.landslide_prone" /> Landslide-prone</label>
@@ -217,7 +217,7 @@
 
             <div class="rounded-lg bg-slate-50 p-3">
               <p class="text-sm font-medium text-slate-700 mb-2">Vulnerable members (from Household Members list)</p>
-              <div class="grid grid-cols-4 gap-3 text-sm text-slate-600">
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm text-slate-600">
                 <span>Senior citizen: <strong>{{ memberDerivedFlags.has_senior_citizen ? 'Yes' : 'No' }}</strong></span>
                 <span>PWD: <strong>{{ memberDerivedFlags.has_pwd ? 'Yes' : 'No' }}</strong></span>
                 <span>Pregnant: <strong>{{ memberDerivedFlags.has_pregnant_member ? 'Yes' : 'No' }}</strong></span>
@@ -237,7 +237,7 @@
 
         <!-- Assessment exists — Secretary/Kagawad full edit -->
         <form v-else-if="canEditFullAssessment" @submit.prevent="handleUpdateAssessment" class="space-y-4">
-          <div class="grid grid-cols-2 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-medium text-slate-700 mb-1">House Material</label>
               <select v-model="assessmentForm.house_material" required class="w-full rounded-lg border border-slate-300 px-3 py-2">
@@ -260,7 +260,7 @@
 
           <div>
             <label class="block text-sm font-medium text-slate-700 mb-1">Hazard Zone (select all that apply)</label>
-            <div class="grid grid-cols-4 gap-3 text-sm">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
               <label class="flex items-center gap-2"><input type="checkbox" v-model="assessmentForm.flood_prone" /> Flood-prone</label>
               <label class="flex items-center gap-2"><input type="checkbox" v-model="assessmentForm.storm_surge_prone" /> Storm surge-prone</label>
               <label class="flex items-center gap-2"><input type="checkbox" v-model="assessmentForm.landslide_prone" /> Landslide-prone</label>
@@ -274,7 +274,7 @@
 
           <div class="rounded-lg bg-slate-50 p-3">
             <p class="text-sm font-medium text-slate-700 mb-2">Vulnerable members (from Household Members list)</p>
-            <div class="grid grid-cols-4 gap-3 text-sm text-slate-600">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm text-slate-600">
               <span>Senior citizen: <strong>{{ memberDerivedFlags.has_senior_citizen ? 'Yes' : 'No' }}</strong></span>
               <span>PWD: <strong>{{ memberDerivedFlags.has_pwd ? 'Yes' : 'No' }}</strong></span>
               <span>Pregnant: <strong>{{ memberDerivedFlags.has_pregnant_member ? 'Yes' : 'No' }}</strong></span>
@@ -298,7 +298,7 @@
             Structural and hazard details are managed by the Barangay Kagawad/Tanod.
           </p>
           <div class="rounded-lg bg-slate-50 p-3">
-            <div class="grid grid-cols-4 gap-3 text-sm text-slate-600">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm text-slate-600">
               <span>Senior citizen: <strong>{{ memberDerivedFlags.has_senior_citizen ? 'Yes' : 'No' }}</strong></span>
               <span>PWD: <strong>{{ memberDerivedFlags.has_pwd ? 'Yes' : 'No' }}</strong></span>
               <span>Pregnant: <strong>{{ memberDerivedFlags.has_pregnant_member ? 'Yes' : 'No' }}</strong></span>
@@ -308,7 +308,7 @@
         </div>
 
         <!-- Read-only (MDRRMO) -->
-        <div v-else class="grid grid-cols-2 gap-3 text-sm text-slate-700">
+        <div v-else class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-slate-700">
           <div>House Material: {{ latestIndicator.house_material }}</div>
           <div>Roof Material: {{ latestIndicator.roof_material }}</div>
           <div>Hazard Zone: {{ latestIndicator.hazard_zone }}</div>

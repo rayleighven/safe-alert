@@ -24,6 +24,7 @@ import HazardMapListView from '@/views/maps/HazardMapListView.vue'
 import HazardMapFormView from '@/views/maps/HazardMapFormView.vue'
 
 import ReportsView from '@/views/reports/ReportsView.vue'
+import NotFoundView from '@/views/NotFoundView.vue'
 
 const routes = [
   { path: '/', name: 'landing', component: LandingView, meta: { requiresAuth: false } },
@@ -155,11 +156,44 @@ const routes = [
     component: ReportsView,
     meta: { requiresAuth: true },
   },
+  { path: '/:pathMatch(.*)*', name: 'not-found', component: NotFoundView, meta: { requiresAuth: false, title: 'Page not found', description: 'The requested SAFE-ALERT page could not be found.' } },
 ]
+
+const pageMeta = {
+  landing: ['SAFE-ALERT | Community Readiness', 'SAFE-ALERT supports disaster readiness and emergency coordination in Baclayon, Bohol.'],
+  'access-select': ['Choose Access | SAFE-ALERT', 'Choose the area associated with your SAFE-ALERT account.'],
+  login: ['Sign In | SAFE-ALERT', 'Sign in to access SAFE-ALERT disaster readiness tools.'],
+  dashboard: ['Dashboard | SAFE-ALERT', 'View community readiness and emergency coordination information.'],
+  profile: ['Profile | SAFE-ALERT', 'Manage your SAFE-ALERT profile and account security.'],
+  accounts: ['Accounts | SAFE-ALERT', 'Manage SAFE-ALERT user accounts.'],
+  households: ['Households | SAFE-ALERT', 'View and manage household readiness records.'],
+  'household-new': ['Add Household | SAFE-ALERT', 'Create household readiness records.'],
+  'household-edit': ['Edit Household | SAFE-ALERT', 'Update household readiness records.'],
+  'household-detail': ['Household Details | SAFE-ALERT', 'View household details and family members.'],
+  'evacuation-centers': ['Evacuation Centers | SAFE-ALERT', 'View evacuation centers and their readiness information.'],
+  'evacuation-center-new': ['Add Evacuation Center | SAFE-ALERT', 'Add an evacuation center to SAFE-ALERT.'],
+  'evacuation-center-edit': ['Edit Evacuation Center | SAFE-ALERT', 'Update evacuation center information.'],
+  'evacuation-center-detail': ['Evacuation Center Details | SAFE-ALERT', 'View evacuation center details and check-ins.'],
+  announcements: ['Announcements | SAFE-ALERT', 'Read community safety announcements and advisories.'],
+  'announcement-new': ['New Announcement | SAFE-ALERT', 'Create a community safety announcement.'],
+  'announcement-edit': ['Edit Announcement | SAFE-ALERT', 'Update a community safety announcement.'],
+  'sms-notifications': ['SMS Broadcasts | SAFE-ALERT', 'Review and authorize emergency SMS broadcasts.'],
+  'hazard-maps': ['Hazard Maps | SAFE-ALERT', 'View hazard map references for Baclayon, Bohol.'],
+  'hazard-map-new': ['Add Hazard Map | SAFE-ALERT', 'Add a hazard map reference.'],
+  'hazard-map-edit': ['Edit Hazard Map | SAFE-ALERT', 'Update a hazard map reference.'],
+  'hazard-map-interactive': ['Interactive Hazard Map | SAFE-ALERT', 'Explore interactive hazard information.'],
+  reports: ['Reports | SAFE-ALERT', 'View and download SAFE-ALERT reports.'],
+}
 
 const router = createRouter({
   history: createWebHistory(),
   routes,
+})
+
+router.afterEach((to) => {
+  const [title, description] = pageMeta[to.name] || [to.meta.title || 'SAFE-ALERT', to.meta.description || 'SAFE-ALERT community disaster readiness system for Baclayon, Bohol.']
+  document.title = title
+  document.querySelector('meta[name="description"]')?.setAttribute('content', description)
 })
 
 router.beforeEach((to, from, next) => {

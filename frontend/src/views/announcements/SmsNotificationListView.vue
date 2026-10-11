@@ -56,6 +56,8 @@
         </button>
       </form>
 
+      <p v-if="actionMessage" :class="actionSuccess ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'" class="mb-4 rounded-lg px-4 py-3 text-sm" role="status">{{ actionMessage }}</p>
+
       <div v-if="isLoading" class="text-slate-500">Loading broadcasts...</div>
       <div v-else-if="notifications.length === 0" class="text-slate-500">No SMS broadcasts yet.</div>
 
@@ -143,6 +145,8 @@ const isLoading = ref(true)
 const showStageForm = ref(false)
 const isStaging = ref(false)
 const stageError = ref('')
+const actionMessage = ref('')
+const actionSuccess = ref(false)
 const customSelections = reactive({})
 const isAuthorizing = reactive({})
 const expandedLogs = reactive({})
@@ -191,11 +195,14 @@ onMounted(loadData)
 async function handleStage() {
   isStaging.value = true
   stageError.value = ''
+  actionMessage.value = ''
   try {
     await announcementsApi.stageSmsNotification(stageForm)
     Object.assign(stageForm, { subject: '', message_body: '', recipient_type: 'All' })
     showStageForm.value = false
     await loadData()
+    actionSuccess.value = true
+    actionMessage.value = 'Broadcast staged for authorization.'
   } catch (error) {
     stageError.value = error.response?.data
       ? Object.values(error.response.data).flat().join(' ')
@@ -208,6 +215,7 @@ async function handleStage() {
 async function handleAuthorize(notification) {
   if (!confirm(`Authorize and send this broadcast to recipients matching "${notification.recipient_type}"?`)) return
   isAuthorizing[notification.sms_id] = true
+  actionMessage.value = ''
   try {
     const payload = {}
     if (notification.recipient_type === 'Custom') {
@@ -215,8 +223,11 @@ async function handleAuthorize(notification) {
     }
     await announcementsApi.authorizeSmsNotification(notification.sms_id, payload)
     await loadData()
+    actionSuccess.value = true
+    actionMessage.value = 'Broadcast authorization completed.'
   } catch (error) {
-    alert(error.response?.data ? Object.values(error.response.data).flat().join(' ') : 'Failed to authorize broadcast.')
+    actionSuccess.value = false
+    actionMessage.value = error.response?.data ? Object.values(error.response.data).flat().join(' ') : 'Failed to authorize broadcast.'
   } finally {
     isAuthorizing[notification.sms_id] = false
   }

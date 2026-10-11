@@ -23,7 +23,7 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-2 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label class="block text-sm font-medium text-slate-700 mb-1">First Name</label>
           <input
@@ -51,7 +51,7 @@
         />
       </div>
  
-      <div class="grid grid-cols-2 gap-4 text-sm text-slate-500">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-slate-500">
         <div>
           <span class="block font-medium text-slate-700">Role</span>
           {{ profile.role }}
@@ -123,7 +123,21 @@
             <p class="mt-2 text-xs text-slate-500">Use 12+ characters with uppercase, lowercase, a number, and a symbol.</p>
           </div>
         </div>
- 
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Confirm New Password</label>
+          <div class="relative">
+            <input
+              v-model="passwordForm.confirm_password"
+              :type="showNewPassword ? 'text' : 'password'"
+              required
+              autocomplete="new-password"
+              placeholder="Re-enter your new password"
+              class="w-full rounded-lg border border-slate-300 py-2 pl-3 pr-11 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+
         <p v-if="passwordMessage" :class="passwordSuccess ? 'text-green-600' : 'text-red-600'" class="text-sm">
           {{ passwordMessage }}
         </p>
@@ -175,7 +189,7 @@ const showNewPassword = ref(false)
  
 const profile = reactive({ role: '', status: '' })
 const form = reactive({ first_name: '', last_name: '', email: '' })
-const passwordForm = reactive({ current_password: '', new_password: '' })
+const passwordForm = reactive({ current_password: '', new_password: '', confirm_password: '' })
 
 const initials = computed(() => `${form.first_name?.[0] || ''}${form.last_name?.[0] || ''}`.toUpperCase() || 'U')
 const passwordStrength = computed(() => {
@@ -243,6 +257,12 @@ function handleAvatarChange(event) {
 }
  
 async function handleChangePassword() {
+  if (passwordForm.new_password !== passwordForm.confirm_password) {
+    passwordSuccess.value = false
+    passwordMessage.value = 'Passwords do not match.'
+    return
+  }
+  passwordMessage.value = ''
   showPasswordConfirm.value = true
 }
 
@@ -251,11 +271,12 @@ async function confirmPasswordChange() {
   isChangingPassword.value = true
   passwordMessage.value = ''
   try {
-    await authApi.changePassword(passwordForm.current_password, passwordForm.new_password)
+    await authApi.changePassword(passwordForm.current_password, passwordForm.new_password, passwordForm.confirm_password)
     passwordSuccess.value = true
     passwordMessage.value = 'Password changed. Please sign in again.'
     passwordForm.current_password = ''
     passwordForm.new_password = ''
+    passwordForm.confirm_password = ''
     showCurrentPassword.value = false
     showNewPassword.value = false
     // The backend revokes every refresh token after a password change. Clear
@@ -268,6 +289,7 @@ async function confirmPasswordChange() {
     passwordMessage.value =
       (error.response?.data?.current_password && error.response.data.current_password[0]) ||
       (error.response?.data?.new_password && error.response.data.new_password[0]) ||
+      (error.response?.data?.confirm_password && error.response.data.confirm_password[0]) ||
       'Failed to change password.'
   } finally {
     isChangingPassword.value = false

@@ -37,6 +37,11 @@ class EvacuationCenterSerializer(serializers.ModelSerializer):
             value.seek(0)
         return value
 
+    def validate_capacity(self, value):
+        if value <= 0:
+            raise serializers.ValidationError('Capacity must be greater than zero.')
+        return value
+
     def validate(self, attrs):
         capacity = attrs.get('capacity', getattr(self.instance, 'capacity', None))
         occupancy = attrs.get('current_occupancy', getattr(self.instance, 'current_occupancy', None))
