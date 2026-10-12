@@ -1,12 +1,14 @@
 <template>
   <nav v-if="standalone" class="relative z-20 bg-white shadow-sm">
-    <div class="flex items-center justify-between px-6 py-4">
-      <div>
-        <router-link :to="{ name: 'dashboard' }" class="text-lg font-bold text-slate-800 hover:text-blue-600" @click="closeMenu">
+    <div class="flex items-center justify-between gap-3 px-4 py-3 sm:px-6">
+      <div class="min-w-0">
+        <router-link :to="{ name: 'dashboard' }" class="block truncate text-lg font-bold text-slate-800 hover:text-blue-600" @click="closeMenu">
           SAFE-ALERT
         </router-link>
         <p class="text-xs text-slate-500">{{ authStore.user?.role }}</p>
       </div>
+
+      <CurrentDateTime class="ml-auto shrink-0 px-2 py-1.5 [&>span:first-child]:h-8 [&>span:first-child]:w-8 [&>span:first-child>svg]:h-4 [&>span:first-child>svg]:w-4 [&>span:last-child>span:first-child]:hidden [&>span:last-child>time]:mt-0 [&>span:last-child>time]:text-xs" />
 
       <button
         type="button"
@@ -58,6 +60,7 @@ import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import ConfirmActionDialog from '@/components/ConfirmActionDialog.vue'
+import CurrentDateTime from '@/components/CurrentDateTime.vue'
 
 defineProps({
   standalone: { type: Boolean, default: false },

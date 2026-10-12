@@ -7,7 +7,8 @@
     <header class="hidden h-16 items-center justify-between border-b border-slate-200 bg-white px-8 lg:flex">
       <p class="text-sm font-semibold text-slate-700">Community Readiness</p>
 
-      <div class="ml-6 flex items-center gap-4">
+      <div class="ml-6 flex min-w-0 items-center gap-4">
+        <CurrentDateTime />
         <div class="flex items-center gap-2 rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700">
           <span class="h-2 w-2 rounded-full bg-emerald-500" />
           {{ locationLabel }}
@@ -63,6 +64,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import AppNavBar from '@/components/AppNavBar.vue'
 import ConfirmActionDialog from '@/components/ConfirmActionDialog.vue'
+import CurrentDateTime from '@/components/CurrentDateTime.vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
