@@ -1,6 +1,6 @@
 import api from '@/services/api'
 
-function downloadBlob(blob, filename) {
+export function downloadReportBlob(blob, filename) {
   const url = window.URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
@@ -8,28 +8,28 @@ function downloadBlob(blob, filename) {
   document.body.appendChild(link)
   link.click()
   link.remove()
-  window.URL.revokeObjectURL(url)
+  window.setTimeout(() => window.URL.revokeObjectURL(url), 1000)
 }
 
-export async function downloadHouseholdReport(priority = null) {
+export async function getHouseholdReport(priority = null) {
   const params = priority ? { priority } : {}
   const response = await api.get('/reports/households/', {
     params,
     responseType: 'blob',
   })
-  downloadBlob(response.data, 'household_report.pdf')
+  return response.data
 }
 
-export async function downloadEvacuationCenterReport() {
+export async function getEvacuationCenterReport() {
   const response = await api.get('/reports/evacuation-centers/', {
     responseType: 'blob',
   })
-  downloadBlob(response.data, 'evacuation_center_report.pdf')
+  return response.data
 }
 
-export async function downloadMyHouseholdReport() {
+export async function getMyHouseholdReport() {
   const response = await api.get('/reports/my-household/', {
     responseType: 'blob',
   })
-  downloadBlob(response.data, 'my_household_report.pdf')
+  return response.data
 }

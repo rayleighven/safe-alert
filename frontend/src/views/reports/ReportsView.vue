@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, reactive, ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import AppNavBar from '@/components/AppNavBar.vue'
 import * as reportsApi from '@/services/reportsApi'
@@ -31,17 +31,31 @@ const isResident = computed(() => authStore.user?.role === 'Resident')
 const householdPriorityFilter = ref('')
 const loading = reactive({ household: false, center: false, myHousehold: false })
 const errorMessage = ref('')
+const preview = ref(null)
 
-async function handleDownload(kind) {
+const reportDetails = {
+  household: { title: 'Household Report', filename: 'household_report.pdf' },
+  center: { title: 'Evacuation Center Report', filename: 'evacuation_center_report.pdf' },
+  myHousehold: { title: 'My Household Report', filename: 'my_household_report.pdf' },
+}
+
+async function handlePreview(kind) {
   errorMessage.value = ''
   loading[kind] = true
   try {
+    let blob
     if (kind === 'household') {
-      await reportsApi.downloadHouseholdReport(householdPriorityFilter.value || null)
+      blob = await reportsApi.getHouseholdReport(householdPriorityFilter.value || null)
     } else if (kind === 'center') {
-      await reportsApi.downloadEvacuationCenterReport()
+      blob = await reportsApi.getEvacuationCenterReport()
     } else if (kind === 'myHousehold') {
-      await reportsApi.downloadMyHouseholdReport()
+      blob = await reportsApi.getMyHouseholdReport()
+    }
+    closePreview()
+    preview.value = {
+      ...reportDetails[kind],
+      blob,
+      objectUrl: window.URL.createObjectURL(blob),
     }
   } catch (err) {
     if (err?.response?.status === 404) {
@@ -55,6 +69,17 @@ async function handleDownload(kind) {
     loading[kind] = false
   }
 }
+
+function closePreview() {
+  if (preview.value?.objectUrl) window.URL.revokeObjectURL(preview.value.objectUrl)
+  preview.value = null
+}
+
+function downloadPreview() {
+  if (preview.value) reportsApi.downloadReportBlob(preview.value.blob, preview.value.filename)
+}
+
+onBeforeUnmount(closePreview)
 </script>
 
 <template>
@@ -63,7 +88,7 @@ async function handleDownload(kind) {
 
     <div class="max-w-2xl mx-auto px-4 py-8">
       <h1 class="text-2xl font-semibold text-slate-800">Reports</h1>
-      <p class="text-slate-500 mt-1 mb-6">Generate a PDF report. Downloads start immediately — there's no preview.</p>
+      <p class="text-slate-500 mt-1 mb-6">Preview each PDF before downloading it.</p>
 
       <div v-if="errorMessage" class="bg-red-50 text-red-700 rounded-md px-4 py-3 mb-4">
         {{ errorMessage }}
@@ -92,9 +117,9 @@ async function handleDownload(kind) {
         <button
           class="bg-green-700 text-white rounded-md px-4 py-2 text-sm disabled:opacity-60 disabled:cursor-not-allowed"
           :disabled="loading.household"
-          @click="handleDownload('household')"
+          @click="handlePreview('household')"
         >
-          {{ loading.household ? 'Generating…' : 'Download PDF' }}
+          {{ loading.household ? 'Preparing preview…' : 'Preview PDF' }}
         </button>
       </section>
 
@@ -107,9 +132,9 @@ async function handleDownload(kind) {
         <button
           class="bg-green-700 text-white rounded-md px-4 py-2 text-sm mt-3 disabled:opacity-60 disabled:cursor-not-allowed"
           :disabled="loading.center"
-          @click="handleDownload('center')"
+          @click="handlePreview('center')"
         >
-          {{ loading.center ? 'Generating…' : 'Download PDF' }}
+          {{ loading.center ? 'Preparing preview…' : 'Preview PDF' }}
         </button>
       </section>
 
@@ -120,9 +145,9 @@ async function handleDownload(kind) {
         <button
           class="bg-green-700 text-white rounded-md px-4 py-2 text-sm mt-3 disabled:opacity-60 disabled:cursor-not-allowed"
           :disabled="loading.myHousehold"
-          @click="handleDownload('myHousehold')"
+          @click="handlePreview('myHousehold')"
         >
-          {{ loading.myHousehold ? 'Generating…' : 'Download PDF' }}
+          {{ loading.myHousehold ? 'Preparing preview…' : 'Preview PDF' }}
         </button>
       </section>
 
@@ -133,5 +158,52 @@ async function handleDownload(kind) {
         No reports are available for your role.
       </p>
     </div>
+
+    <Teleport to="body">
+      <div
+        v-if="preview"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-2 sm:p-5"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="report-preview-title"
+        @keydown.esc="closePreview"
+        @click.self="closePreview"
+      >
+        <section class="flex h-[95vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl sm:h-[90vh]">
+          <header class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3 sm:px-6">
+            <div class="min-w-0">
+              <h2 id="report-preview-title" class="truncate text-lg font-semibold text-slate-900">{{ preview.title }} preview</h2>
+              <p class="text-xs text-slate-500">Review the report, then download the PDF when ready.</p>
+            </div>
+            <div class="flex shrink-0 items-center gap-2">
+              <a
+                :href="preview.objectUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="inline-flex min-h-10 items-center rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                Open in new tab
+              </a>
+              <button
+                type="button"
+                class="inline-flex min-h-10 items-center rounded-lg bg-blue-700 px-3 py-2 text-sm font-semibold text-white hover:bg-blue-800"
+                @click="downloadPreview"
+              >
+                Download PDF
+              </button>
+              <button
+                type="button"
+                class="inline-flex h-10 w-10 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                aria-label="Close report preview"
+                @click="closePreview"
+              >
+                <span aria-hidden="true" class="text-2xl leading-none">&times;</span>
+              </button>
+            </div>
+          </header>
+          <iframe :src="preview.objectUrl" :title="`${preview.title} PDF preview`" class="min-h-0 flex-1 bg-slate-100" />
+        </section>
+      </div>
+    </Teleport>
   </div>
 </template>
