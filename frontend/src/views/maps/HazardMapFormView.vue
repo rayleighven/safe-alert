@@ -42,6 +42,7 @@
               placeholder="e.g. Project NOAH"
               class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
+            <p class="mt-1 text-xs text-slate-500">For a built-in interactive dataset, enter exactly <strong>Project NOAH</strong>.</p>
           </div>
         </div>
 
@@ -66,15 +67,18 @@
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Map URL{{ imageFile ? ' (optional)' : '' }}</label>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Map URL{{ mapUrlRequired ? '' : ' (optional)' }}</label>
           <input
             v-model="form.map_url"
             type="url"
-            :required="!imageFile"
+            :required="mapUrlRequired"
             placeholder="https://noah.up.edu.ph/..."
             class="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
-          <p class="mt-1 text-xs text-slate-500">Provide a link to the full map, an uploaded image, or both.</p>
+          <p class="mt-1 text-xs text-slate-500">
+            <template v-if="hasBuiltInNoahLayer">The interactive Project NOAH dataset is loaded automatically. A URL or image is optional.</template>
+            <template v-else>Provide a map URL or upload an image.</template>
+          </p>
         </div>
 
         <div>
@@ -120,6 +124,7 @@ const errorMessage = ref('')
 const imageFile = ref(null)
 const imagePreview = ref('')
 const imageError = ref('')
+const BUILT_IN_NOAH_TYPES = ['Flood', 'Storm Surge', 'Landslide']
 
 const form = reactive({
   map_title: '',
@@ -128,6 +133,11 @@ const form = reactive({
   map_url: '',
   description: '',
 })
+
+const hasBuiltInNoahLayer = computed(() => (
+  form.source.trim() === 'Project NOAH' && BUILT_IN_NOAH_TYPES.includes(form.hazard_type)
+))
+const mapUrlRequired = computed(() => !hasBuiltInNoahLayer.value && !imagePreview.value)
 
 onMounted(async () => {
   if (isEditMode.value) {

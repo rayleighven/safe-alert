@@ -4,6 +4,9 @@ from rest_framework import serializers
 from .models import HazardMap
 
 
+BUILT_IN_NOAH_TYPES = {'Flood', 'Storm Surge', 'Landslide'}
+
+
 class HazardMapSerializer(serializers.ModelSerializer):
     class Meta:
         model = HazardMap
@@ -39,6 +42,9 @@ class HazardMapSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         map_url = attrs.get('map_url', getattr(self.instance, 'map_url', ''))
         map_image = attrs.get('map_image', getattr(self.instance, 'map_image', None))
-        if not map_url and not map_image:
+        source = attrs.get('source', getattr(self.instance, 'source', ''))
+        hazard_type = attrs.get('hazard_type', getattr(self.instance, 'hazard_type', ''))
+        has_built_in_noah_layer = source == 'Project NOAH' and hazard_type in BUILT_IN_NOAH_TYPES
+        if not map_url and not map_image and not has_built_in_noah_layer:
             raise serializers.ValidationError({'map_url': 'Provide a map URL or upload a map image.'})
         return attrs

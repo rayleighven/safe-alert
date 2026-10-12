@@ -22,14 +22,7 @@
       -->
       <div v-show="!isLoading && !errorMessage" class="bg-white rounded-xl shadow-sm p-5">
         <div class="flex items-center gap-3 flex-wrap mb-3">
-          <label for="hazard-type-select" class="text-sm font-medium text-slate-700">Hazard Type:</label>
-          <select
-            id="hazard-type-select"
-            v-model="selectedHazardType"
-            class="border border-slate-300 rounded-lg px-3 py-1.5 text-sm text-slate-700"
-          >
-            <option v-for="type in HAZARD_TYPES" :key="type" :value="type">{{ type }}</option>
-          </select>
+          <span class="text-sm font-semibold text-slate-700">Hazard: {{ selectedHazardType }}</span>
 
           <button
             v-for="layer in layerOptions"
@@ -43,6 +36,10 @@
             {{ layer.label }}
           </button>
         </div>
+
+        <p v-if="!layerOptions.length" class="mb-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          No built-in Project NOAH interactive layer is configured for this hazard type.
+        </p>
 
         <div ref="mapContainer" class="h-[520px] w-full rounded-lg overflow-hidden border border-slate-200"></div>
 
@@ -102,20 +99,19 @@ import {
 
 const route = useRoute()
 
-const HAZARD_TYPES = Object.keys(NOAH_HAZARD_LAYERS)
 const ALL_LAYERS = Object.values(NOAH_HAZARD_LAYERS).flat()
 
 const isLoading = ref(true)
 const errorMessage = ref('')
 const hazardMap = ref(null)
 const locationLabel = ref('')
-const selectedHazardType = ref(HAZARD_TYPES[0])
 const activeLayerId = ref('')
 const mapContainer = ref(null)
 const severityLevel = ref(0)
 const severityLoading = ref(false)
 const severityError = ref('')
 
+const selectedHazardType = computed(() => hazardMap.value?.hazard_type || '')
 const layerOptions = computed(() => NOAH_HAZARD_LAYERS[selectedHazardType.value] || [])
 
 let map = null
@@ -207,10 +203,6 @@ watch(activeLayerId, (id) => {
   scheduleSeverityCheck()
 })
 
-watch(selectedHazardType, () => {
-  activeLayerId.value = layerOptions.value[0]?.id || ''
-})
-
 onMounted(async () => {
   try {
     const hazardMapResponse = await mapsApi.getHazardMap(route.params.id)
@@ -223,9 +215,6 @@ onMounted(async () => {
     const { lat, lon } = await geocodeLocation(`${locationLabel.value}, Philippines`)
     markerLngLat = [lon, lat]
 
-    selectedHazardType.value = HAZARD_TYPES.includes(hazardMap.value.hazard_type)
-      ? hazardMap.value.hazard_type
-      : HAZARD_TYPES[0]
     activeLayerId.value = layerOptions.value[0]?.id || ''
 
     // Reveal the map panel (and let Vue render it) before constructing

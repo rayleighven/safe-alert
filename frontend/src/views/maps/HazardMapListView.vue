@@ -62,7 +62,7 @@
                     </svg>
                   </a>
                   <router-link
-                    v-if="map.source === 'Project NOAH'"
+                    v-if="map.source === 'Project NOAH' && NOAH_HAZARD_LAYERS[map.hazard_type]"
                     :to="{ name: 'hazard-map-interactive', params: { id: map.map_id } }"
                     class="text-sm text-emerald-600 hover:text-emerald-700 font-medium"
                   >
@@ -89,6 +89,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import AppNavBar from '@/components/AppNavBar.vue'
 import * as mapsApi from '@/services/mapsApi'
+import { NOAH_HAZARD_LAYERS } from '@/services/noahHazardLayers'
 
 const authStore = useAuthStore()
 const maps = ref([])
