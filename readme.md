@@ -138,6 +138,23 @@ python manage.py shell -c "from accounts.models import User; from core.models im
 
 Use `Poblacion` in the command if that is the account's barangay. Run `createsuperuser` only to create your own trusted local administrator/Secretary account. After signing in, that Secretary can add separate accounts for other roles from **Accounts**. Do not reuse another developer's credentials.
 
+### Optional: fill the dashboard with local demo data
+
+To preview the dashboard with records, open a backend terminal after creating your own active Barangay Secretary account and run:
+
+```powershell
+cd backend
+python manage.py seed_dashboard_demo --barangay Poblacion
+```
+
+This creates 10 fictional Resident accounts (`demo_resident_01` through `demo_resident_10`) and links them to sample households in **Barangay Poblacion**. It also creates demo vulnerability assessments, evacuation centers, Project NOAH map references, announcements, and SMS delivery records. The SMS records are local samples; no messages are sent. Demo content is labeled `DEMO` in the system.
+
+The command only runs while `DJANGO_DEBUG=True`. Each new account gets a random password printed to that backend terminal. Save those credentials locally; do not commit or share the terminal output. For existing demo accounts, use `python manage.py seed_dashboard_demo --barangay Poblacion --reset-passwords` to generate and print new passwords. To remove only the demo data and accounts, run `python manage.py seed_dashboard_demo --clear`.
+
+The seeder source is safe to upload to GitHub: it contains no reusable account password, runs only when Django debug mode is enabled, and is not run automatically during setup. Keep `.env` files, database dumps, and generated login credentials out of the repository. Use a Poblacion Secretary account to view the aggregate dashboard data; the Resident accounts can only view their linked households.
+
+Keep using your Secretary account to see the complete household analytics dashboard. Resident accounts are scoped to their linked household.
+
 ## 4. Configure and start the frontend
 
 Open a second terminal at the repository root:
