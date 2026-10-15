@@ -1,10 +1,14 @@
-﻿<template>
-  <div class="mx-auto max-w-6xl p-6">
-    <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+<template>
+  <div class="space-y-6 pb-6">
+    <div class="flex flex-wrap items-end justify-between gap-4">
       <div>
-        <p class="text-sm text-slate-500">Administration / Accounts</p>
-        <h1 class="mt-1 text-2xl font-bold text-slate-800">Barangay accounts</h1>
-        <p class="mt-1 text-sm text-slate-500">Accounts registered under {{ barangayName }}.</p>
+        <nav class="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-2" aria-label="Breadcrumb">
+          <router-link :to="{ name: 'dashboard' }" class="transition-colors hover:text-blue-600">SAFE-ALERT</router-link>
+          <span class="text-slate-300" aria-hidden="true">/</span>
+          <span class="text-slate-800">Accounts</span>
+        </nav>
+        <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">Barangay Accounts</h1>
+        <p class="mt-1 text-xs sm:text-sm font-medium text-slate-500">Authorized system personnel and resident accounts registered under {{ barangayName }}.</p>
       </div>
       <div class="flex w-full flex-wrap gap-3 sm:w-auto sm:flex-nowrap">
         <label class="relative block min-w-0 flex-1 sm:w-72">
@@ -100,7 +104,7 @@
                 </div>
               </td>
               <td class="px-5 py-4 text-slate-700">{{ account.role }}</td>
-              <td class="px-5 py-4 text-slate-600">{{ account.assigned_purok || 'â€”' }}</td>
+              <td class="px-5 py-4 text-slate-600">{{ account.assigned_purok || '—' }}</td>
               <td class="px-5 py-4">
                 <label class="sr-only" :for="`status-${account.user_id}`">Account status for {{ account.username }}</label>
                 <select

@@ -1,139 +1,262 @@
 <template>
-  <div class="min-h-screen bg-slate-50">
-    <AppNavBar />
-    <main class="p-6 max-w-3xl mx-auto">
-      <div class="flex items-center justify-between mb-6">
-        <h1 class="text-2xl font-bold text-slate-800">SMS Broadcasts</h1>
+  <div class="space-y-6 pb-6 max-w-4xl">
+    <!-- Breadcrumb & Header -->
+    <header class="space-y-3">
+      <nav class="flex items-center gap-2 text-xs font-semibold text-slate-500" aria-label="Breadcrumb">
+        <router-link :to="{ name: 'dashboard' }" class="transition-colors hover:text-blue-600">SAFE-ALERT</router-link>
+        <span class="text-slate-300" aria-hidden="true">/</span>
+        <span class="text-slate-800">SMS Broadcasts</span>
+      </nav>
+
+      <div class="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">SMS Broadcasts</h1>
+          <p class="mt-1 text-xs sm:text-sm font-medium text-slate-500">
+            Emergency SMS staging, Chairperson authorization queue, and carrier delivery logs.
+          </p>
+        </div>
         <button
           v-if="isSecretary"
+          type="button"
+          class="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           @click="showStageForm = !showStageForm"
-          class="bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg px-4 py-2"
         >
-          {{ showStageForm ? 'Cancel' : '+ Stage Broadcast' }}
+          <svg v-if="!showStageForm" class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+          </svg>
+          <span>{{ showStageForm ? 'Cancel Staging' : 'Stage Broadcast' }}</span>
         </button>
       </div>
+    </header>
 
-      <div class="mb-4 bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm rounded-lg px-4 py-3">
-        The SMS gateway may currently be running in dry-run mode (no real credentials configured yet).
-        Authorized broadcasts will show as <strong>Simulated</strong> in the delivery log below instead of
-        actually sending — check with whoever set up the backend if you're unsure.
+    <!-- Dry Run / Simulation Mode Notice -->
+    <div class="flex items-start gap-3 rounded-2xl border border-amber-200/80 bg-amber-50/70 p-4 text-xs sm:text-sm text-amber-900 shadow-xs">
+      <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-800">
+        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+        </svg>
+      </span>
+      <div class="leading-relaxed">
+        <strong class="font-bold">Gateway Notice:</strong> The SMS gateway may operate in dry-run simulation mode without live carrier credentials. Authorized broadcasts will show as <strong>Simulated</strong> in the delivery audit log below without charging airtime.
+      </div>
+    </div>
+
+    <!-- Staging Form (Secretary) -->
+    <form
+      v-if="showStageForm"
+      class="space-y-4 rounded-2xl border border-blue-200/90 bg-white p-5 sm:p-6 shadow-card"
+      @submit.prevent="handleStage"
+    >
+      <div class="border-b border-slate-100 pb-3">
+        <h2 class="text-base font-bold text-slate-900">Stage Emergency Broadcast</h2>
+        <p class="mt-0.5 text-xs text-slate-500">Staged messages require BDRRMC Chairperson authorization before transmission.</p>
       </div>
 
-      <!-- Staging form (Secretary) -->
-      <form v-if="showStageForm" @submit.prevent="handleStage" class="bg-white rounded-xl shadow-sm p-6 mb-6 space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Subject</label>
-          <input v-model="stageForm.subject" type="text" required class="w-full rounded-lg border border-slate-300 px-3 py-2" />
+      <div>
+        <label for="sms-subject" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">Subject</label>
+        <input
+          id="sms-subject"
+          v-model="stageForm.subject"
+          type="text"
+          required
+          placeholder="e.g. PAGASA Tropical Cyclone Warning"
+          class="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-800 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
+        />
+      </div>
+
+      <div>
+        <div class="flex items-center justify-between mb-1">
+          <label for="sms-body" class="block text-xs font-bold uppercase tracking-wider text-slate-700">Message Body</label>
+          <span class="text-[11px] font-semibold text-slate-400 tabular-nums">{{ stageForm.message_body.length }} / 480</span>
         </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Message</label>
-          <textarea
-            v-model="stageForm.message_body"
-            required
-            rows="3"
-            maxlength="480"
-            class="w-full rounded-lg border border-slate-300 px-3 py-2"
-          ></textarea>
-          <p class="text-xs text-slate-400 mt-1">{{ stageForm.message_body.length }} / 480 characters</p>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Recipients</label>
-          <select v-model="stageForm.recipient_type" required class="w-full rounded-lg border border-slate-300 px-3 py-2">
-            <option value="All">All households</option>
-            <option value="High Priority">High priority households</option>
-            <option value="Medium">Medium priority households</option>
-            <option value="Low">Low priority households</option>
-            <option value="Custom">Custom selection (chosen at authorization time)</option>
-          </select>
-        </div>
-        <p v-if="stageError" class="text-sm text-red-600">{{ stageError }}</p>
+        <textarea
+          id="sms-body"
+          v-model="stageForm.message_body"
+          required
+          rows="3"
+          maxlength="480"
+          placeholder="Enter clear, concise emergency instructions for residents..."
+          class="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-800 placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
+        />
+      </div>
+
+      <div>
+        <label for="sms-recipients" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">Target Recipients</label>
+        <select
+          id="sms-recipients"
+          v-model="stageForm.recipient_type"
+          required
+          class="w-full rounded-xl border border-slate-200 bg-slate-50/60 px-3.5 py-2 text-xs sm:text-sm font-semibold text-slate-700 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
+        >
+          <option value="All">All households in Barangay</option>
+          <option value="High Priority">High priority households only</option>
+          <option value="Medium">Medium priority households</option>
+          <option value="Low">Low priority households</option>
+          <option value="Custom">Custom selection (chosen at authorization time)</option>
+        </select>
+      </div>
+
+      <p v-if="stageError" class="rounded-xl bg-red-50 p-3 text-xs font-medium text-red-700" role="alert">
+        {{ stageError }}
+      </p>
+
+      <div class="flex justify-end gap-2.5 pt-2">
+        <button
+          type="button"
+          class="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+          @click="showStageForm = false"
+        >
+          Cancel
+        </button>
         <button
           type="submit"
           :disabled="isStaging"
-          class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white rounded-lg px-4 py-2 text-sm"
+          class="rounded-xl bg-blue-600 px-5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-blue-700 disabled:bg-blue-300"
         >
           {{ isStaging ? 'Staging...' : 'Stage for Authorization' }}
         </button>
-      </form>
+      </div>
+    </form>
 
-      <p v-if="actionMessage" :class="actionSuccess ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'" class="mb-4 rounded-lg px-4 py-3 text-sm" role="status">{{ actionMessage }}</p>
+    <!-- Action Feedback Toast -->
+    <p
+      v-if="actionMessage"
+      :class="actionSuccess ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-red-50 text-red-800 border-red-200'"
+      class="rounded-xl border p-3.5 text-xs font-semibold"
+      role="status"
+    >
+      {{ actionMessage }}
+    </p>
 
-      <div v-if="isLoading" class="text-slate-500">Loading broadcasts...</div>
-      <div v-else-if="notifications.length === 0" class="text-slate-500">No SMS broadcasts yet.</div>
+    <!-- Loading State -->
+    <div v-if="isLoading" class="rounded-2xl border border-slate-200/80 bg-white p-12 text-center shadow-card">
+      <div class="inline-flex h-10 w-10 animate-spin items-center justify-center rounded-full border-2 border-blue-600 border-t-transparent text-blue-600" />
+      <p class="mt-4 text-xs font-semibold uppercase tracking-wider text-slate-400">Loading broadcasts...</p>
+    </div>
 
-      <div v-else class="space-y-4">
-        <div v-for="n in notifications" :key="n.sms_id" class="bg-white rounded-xl shadow-sm p-5">
-          <div class="flex items-start justify-between mb-2 gap-3 flex-wrap">
-            <div>
-              <h2 class="font-semibold text-slate-800">{{ n.subject }}</h2>
-              <p class="text-xs text-slate-400">{{ n.recipient_type }} • Staged {{ formatDate(n.created_at) }}</p>
-            </div>
-            <span :class="statusBadgeClass(n.status)" class="px-2 py-1 rounded-full text-xs font-medium">{{ n.status }}</span>
+    <!-- Empty State -->
+    <div v-else-if="notifications.length === 0" class="rounded-2xl border border-slate-200/80 bg-white p-12 text-center shadow-card">
+      <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
+        <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 11.5a8.4 8.4 0 0 1-9 8.5 9.7 9.7 0 0 1-4.2-1L3 20l1.1-4A8.4 8.4 0 0 1 3 11.5 8.5 8.5 0 0 1 12 3a8.5 8.5 0 0 1 9 8.5Z" />
+        </svg>
+      </div>
+      <h3 class="mt-4 text-sm font-bold text-slate-800">No broadcasts recorded</h3>
+      <p class="mt-1 text-xs text-slate-500">Staged and dispatched SMS broadcasts will be archived here.</p>
+    </div>
+
+    <!-- Broadcasts Feed -->
+    <div v-else class="space-y-4">
+      <article
+        v-for="n in notifications"
+        :key="n.sms_id"
+        class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-card transition-all duration-200 hover:border-slate-300 hover:shadow-card-hover"
+      >
+        <!-- Header & Status Pill -->
+        <div class="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <h2 class="text-base font-bold text-slate-900">{{ n.subject }}</h2>
+            <p class="mt-0.5 text-xs text-slate-400 font-medium">
+              Target: <span class="text-slate-600 font-semibold">{{ n.recipient_type }}</span> · Staged {{ formatDate(n.created_at) }}
+            </p>
           </div>
-          <p class="text-slate-600 text-sm mb-3 whitespace-pre-line">{{ n.message_body }}</p>
+          <span :class="statusBadgeClass(n.status)" class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold">
+            {{ n.status }}
+          </span>
+        </div>
 
-          <div v-if="n.status !== 'Pending'" class="text-xs text-slate-500 mb-3">
-            {{ n.sent_count }} sent / {{ n.failed_count }} failed / {{ n.total_recipients }} total
-          </div>
+        <!-- Message Preview -->
+        <p class="mt-3 text-xs sm:text-sm text-slate-700 bg-slate-50/70 rounded-xl p-3.5 border border-slate-100 whitespace-pre-line leading-relaxed font-mono">
+          {{ n.message_body }}
+        </p>
 
-          <!-- Authorize form (Chairperson, only while Pending) -->
-          <div v-if="isChairperson && n.status === 'Pending'">
-            <div v-if="n.recipient_type === 'Custom'" class="mb-3">
-              <label class="block text-sm font-medium text-slate-700 mb-1">Select Households</label>
-              <select multiple v-model="customSelections[n.sms_id]" class="w-full rounded-lg border border-slate-300 px-3 py-2 h-32">
-                <option v-for="h in households" :key="h.household_id" :value="h.household_id">
-                  {{ h.household_number }} - {{ h.head_of_family }}
-                </option>
-              </select>
-            </div>
-            <button
-              @click="handleAuthorize(n)"
-              :disabled="isAuthorizing[n.sms_id]"
-              class="bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white rounded-lg px-4 py-2 text-sm"
+        <!-- Sent Counts Summary -->
+        <div v-if="n.status !== 'Pending'" class="mt-3 flex items-center gap-3 text-xs text-slate-500 font-medium tabular-nums">
+          <span class="text-emerald-700 font-bold">{{ n.sent_count }} sent</span>
+          <span>·</span>
+          <span class="text-red-700 font-bold">{{ n.failed_count }} failed</span>
+          <span>·</span>
+          <span>{{ n.total_recipients }} total recipients</span>
+        </div>
+
+        <!-- Chairperson Authorization Panel (Pending only) -->
+        <div v-if="isChairperson && n.status === 'Pending'" class="mt-4 border-t border-slate-100 pt-4">
+          <div v-if="n.recipient_type === 'Custom'" class="mb-3">
+            <label :for="`custom-select-${n.sms_id}`" class="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1">
+              Select Recipient Households
+            </label>
+            <select
+              :id="`custom-select-${n.sms_id}`"
+              multiple
+              v-model="customSelections[n.sms_id]"
+              class="w-full rounded-xl border border-slate-300 px-3 py-2 text-xs h-32 focus:border-blue-500 focus:outline-none"
             >
-              {{ isAuthorizing[n.sms_id] ? 'Sending...' : 'Authorize & Send' }}
-            </button>
+              <option v-for="h in households" :key="h.household_id" :value="h.household_id">
+                {{ h.household_number }} — {{ h.head_of_family }} ({{ h.purok }})
+              </option>
+            </select>
           </div>
-          <p v-if="!isChairperson && n.status === 'Pending'" class="text-xs text-slate-400">
-            Awaiting authorization from the BDRRMC Chairperson.
-          </p>
+          <button
+            type="button"
+            :disabled="isAuthorizing[n.sms_id]"
+            class="inline-flex min-h-9 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 disabled:bg-emerald-300"
+            @click="handleAuthorize(n)"
+          >
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+            </svg>
+            <span>{{ isAuthorizing[n.sms_id] ? 'Authorizing & Dispatching...' : 'Authorize & Broadcast Now' }}</span>
+          </button>
+        </div>
 
-          <!-- Delivery log -->
-          <div v-if="n.logs && n.logs.length > 0" class="mt-3">
-            <button @click="toggleLogs(n.sms_id)" class="text-xs text-blue-600 hover:text-blue-700">
-              {{ expandedLogs[n.sms_id] ? 'Hide' : 'Show' }} delivery log ({{ n.logs.length }})
-            </button>
-            <table v-if="expandedLogs[n.sms_id]" class="w-full text-xs mt-2">
-              <thead class="text-left text-slate-500">
+        <p v-if="!isChairperson && n.status === 'Pending'" class="mt-3 text-xs font-medium text-amber-700">
+          Awaiting authorization by the BDRRMC Chairperson before broadcast.
+        </p>
+
+        <!-- Delivery Log Drawer/Accordion -->
+        <div v-if="n.logs && n.logs.length > 0" class="mt-4 border-t border-slate-100 pt-3">
+          <button
+            type="button"
+            class="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-800 transition-colors"
+            @click="toggleLogs(n.sms_id)"
+          >
+            <span>{{ expandedLogs[n.sms_id] ? 'Hide' : 'View' }} delivery audit log ({{ n.logs.length }} records)</span>
+            <svg class="h-3.5 w-3.5 transition-transform" :class="{ 'rotate-180': expandedLogs[n.sms_id] }" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+            </svg>
+          </button>
+
+          <div v-if="expandedLogs[n.sms_id]" class="mt-3 overflow-x-auto rounded-xl border border-slate-100">
+            <table class="w-full text-left text-xs">
+              <thead class="border-b border-slate-100 bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-500">
                 <tr>
-                  <th class="py-1">Number</th>
-                  <th class="py-1">Status</th>
-                  <th class="py-1">Response</th>
+                  <th class="py-2 px-3">Contact Number</th>
+                  <th class="py-2 px-3">Status</th>
+                  <th class="py-2 px-3">Gateway Feedback</th>
                 </tr>
               </thead>
-              <tbody>
-                <tr v-for="log in n.logs" :key="log.log_id" class="border-t border-slate-100">
-                  <td class="py-1">{{ log.contact_number }}</td>
-                  <td class="py-1">
-                    <span :class="deliveryBadgeClass(log.delivery_status)" class="px-2 py-0.5 rounded-full text-xs">
+              <tbody class="divide-y divide-slate-100">
+                <tr v-for="log in n.logs" :key="log.log_id" class="hover:bg-slate-50">
+                  <td class="py-2 px-3 font-mono font-medium text-slate-700 tabular-nums">{{ log.contact_number }}</td>
+                  <td class="py-2 px-3">
+                    <span :class="deliveryBadgeClass(log.delivery_status)" class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-bold">
                       {{ log.delivery_status }}
                     </span>
                   </td>
-                  <td class="py-1 text-slate-500">{{ log.gateway_response }}</td>
+                  <td class="py-2 px-3 text-slate-500 font-mono text-[11px]">{{ log.gateway_response || '—' }}</td>
                 </tr>
               </tbody>
             </table>
           </div>
         </div>
-      </div>
-    </main>
+      </article>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import AppNavBar from '@/components/AppNavBar.vue'
 import * as announcementsApi from '@/services/announcementsApi'
 import * as householdsApi from '@/services/householdsApi'
 
@@ -158,21 +281,22 @@ const isChairperson = computed(() => role.value === 'BDRRMC Chairperson')
 const stageForm = reactive({ subject: '', message_body: '', recipient_type: 'All' })
 
 function statusBadgeClass(status) {
-  if (status === 'Sent') return 'bg-green-100 text-green-700'
-  if (status === 'Partially Sent') return 'bg-yellow-100 text-yellow-700'
-  if (status === 'Failed') return 'bg-red-100 text-red-700'
-  return 'bg-slate-100 text-slate-600'
+  if (status === 'Sent') return 'bg-emerald-100 text-emerald-800'
+  if (status === 'Partially Sent') return 'bg-amber-100 text-amber-800'
+  if (status === 'Failed') return 'bg-red-100 text-red-800'
+  return 'bg-amber-50 text-amber-800 border border-amber-200'
 }
 
 function deliveryBadgeClass(status) {
-  if (status === 'Delivered') return 'bg-green-100 text-green-700'
-  if (status === 'Simulated') return 'bg-blue-100 text-blue-700'
-  if (status === 'Failed') return 'bg-red-100 text-red-700'
-  return 'bg-slate-100 text-slate-600'
+  if (status === 'Delivered') return 'bg-emerald-100 text-emerald-800'
+  if (status === 'Simulated') return 'bg-blue-100 text-blue-800'
+  if (status === 'Failed') return 'bg-red-100 text-red-800'
+  return 'bg-slate-100 text-slate-700'
 }
 
 function formatDate(dateStr) {
-  return new Date(dateStr).toLocaleString()
+  if (!dateStr) return ''
+  return new Intl.DateTimeFormat('en-PH', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Manila' }).format(new Date(dateStr))
 }
 
 function toggleLogs(smsId) {
@@ -181,13 +305,16 @@ function toggleLogs(smsId) {
 
 async function loadData() {
   isLoading.value = true
-  const [notificationsRes, householdsRes] = await Promise.all([
-    announcementsApi.listSmsNotifications(),
-    householdsApi.listHouseholds(),
-  ])
-  notifications.value = notificationsRes.data
-  households.value = householdsRes.data
-  isLoading.value = false
+  try {
+    const [notificationsRes, householdsRes] = await Promise.all([
+      announcementsApi.listSmsNotifications(),
+      householdsApi.listHouseholds(),
+    ])
+    notifications.value = notificationsRes.data
+    households.value = householdsRes.data
+  } finally {
+    isLoading.value = false
+  }
 }
 
 onMounted(loadData)
@@ -213,7 +340,7 @@ async function handleStage() {
 }
 
 async function handleAuthorize(notification) {
-  if (!confirm(`Authorize and send this broadcast to recipients matching "${notification.recipient_type}"?`)) return
+  if (!window.confirm(`Authorize and send this broadcast to recipients matching "${notification.recipient_type}"?`)) return
   isAuthorizing[notification.sms_id] = true
   actionMessage.value = ''
   try {

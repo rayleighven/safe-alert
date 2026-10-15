@@ -1,13 +1,20 @@
 <template>
-  <div class="mx-auto max-w-2xl p-6">
-    <div class="mb-6">
-      <p class="text-sm text-slate-500">Account / Profile</p>
-      <h1 class="mt-1 text-2xl font-bold text-slate-800">Profile Settings</h1>
-    </div>
- 
-    <div v-if="isLoading" class="text-slate-500">Loading profile...</div>
- 
-    <form v-else @submit.prevent="handleSave" class="space-y-4 bg-white rounded-xl shadow-sm p-6">
+  <div class="space-y-6 pb-6 max-w-2xl">
+    <header class="space-y-3">
+      <nav class="flex items-center gap-2 text-xs font-semibold text-slate-500" aria-label="Breadcrumb">
+        <router-link :to="{ name: 'dashboard' }" class="transition-colors hover:text-blue-600">SAFE-ALERT</router-link>
+        <span class="text-slate-300" aria-hidden="true">/</span>
+        <span class="text-slate-800">Profile Settings</span>
+      </nav>
+      <div>
+        <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">Profile Settings</h1>
+        <p class="mt-1 text-xs sm:text-sm font-medium text-slate-500">Manage your system credentials, contact details, and account security.</p>
+      </div>
+    </header>
+
+    <div v-if="isLoading" class="rounded-2xl border border-slate-200/80 bg-white p-12 text-center text-xs text-slate-500 shadow-card">Loading profile...</div>
+
+    <form v-else @submit.prevent="handleSave" class="space-y-5 bg-white rounded-2xl border border-slate-200/80 shadow-card p-6">
       <div class="flex flex-wrap items-center gap-4 border-b border-slate-100 pb-5">
         <div class="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-100 text-xl font-bold text-blue-700">
           <img v-if="avatarPreview" :src="avatarPreview" alt="Profile picture preview" class="h-full w-full object-cover" />
@@ -69,14 +76,15 @@
       <button
         type="submit"
         :disabled="isSaving"
-        class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-medium rounded-lg px-4 py-2 transition-colors"
+        class="bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-semibold rounded-xl px-5 py-2.5 text-xs shadow-sm transition-colors"
       >
         {{ isSaving ? 'Saving...' : 'Save Changes' }}
       </button>
     </form>
  
-    <div class="mt-8 bg-white rounded-xl shadow-sm p-6">
-      <h2 class="text-lg font-semibold text-slate-800 mb-4">Change Password</h2>
+    <div class="mt-6 bg-white rounded-2xl border border-slate-200/80 shadow-card p-6">
+      <h2 class="text-base font-bold text-slate-900 mb-1">Change Password</h2>
+      <p class="text-xs text-slate-500 mb-5">Ensure your account uses a secure password with numbers and symbols.</p>
       <form @submit.prevent="handleChangePassword" class="space-y-4">
         <div>
           <label class="block text-sm font-medium text-slate-700 mb-1">Current password <span class="text-red-600">*</span></label>

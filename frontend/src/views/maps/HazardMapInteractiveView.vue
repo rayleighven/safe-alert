@@ -1,16 +1,24 @@
 <template>
-  <div class="min-h-screen bg-slate-50">
-    <AppNavBar />
-    <main class="p-6 max-w-5xl mx-auto">
-      <div class="flex items-center justify-between mb-4 gap-3 flex-wrap">
+  <div class="space-y-6 pb-6 max-w-5xl">
+    <header class="space-y-3">
+      <nav class="flex items-center gap-2 text-xs font-semibold text-slate-500" aria-label="Breadcrumb">
+        <router-link :to="{ name: 'dashboard' }" class="transition-colors hover:text-blue-600">SAFE-ALERT</router-link>
+        <span class="text-slate-300" aria-hidden="true">/</span>
+        <router-link to="/hazard-maps" class="transition-colors hover:text-blue-600">Hazard Maps</router-link>
+        <span class="text-slate-300" aria-hidden="true">/</span>
+        <span class="text-slate-800">Interactive GIS</span>
+      </nav>
+
+      <div class="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h1 class="text-2xl font-bold text-slate-800">{{ hazardMap ? hazardMap.map_title : 'Interactive Hazard Map' }}</h1>
-          <p v-if="locationLabel" class="text-sm text-slate-500">{{ locationLabel }}</p>
+          <h1 class="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">{{ hazardMap ? hazardMap.map_title : 'Interactive Hazard Map' }}</h1>
+          <p v-if="locationLabel" class="mt-1 text-xs sm:text-sm font-medium text-slate-500">{{ locationLabel }}</p>
         </div>
-        <router-link to="/hazard-maps" class="bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium rounded-lg px-4 py-2">
-          Back to Hazard Maps
+        <router-link to="/hazard-maps" class="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-xs transition-colors hover:bg-slate-50">
+          ← Back to Maps
         </router-link>
       </div>
+    </header>
 
       <div v-if="isLoading" class="text-slate-500">Loading interactive map...</div>
       <div v-if="errorMessage" class="bg-white rounded-xl shadow-sm p-5 text-sm text-red-600">{{ errorMessage }}</div>
@@ -70,7 +78,6 @@
           Base map &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" class="underline">OpenStreetMap</a> contributors.
         </p>
       </div>
-    </main>
   </div>
 </template>
 

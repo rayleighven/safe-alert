@@ -2,10 +2,59 @@
 @tailwind components;
 @tailwind utilities;
 
-html { min-width: 320px; overflow-x: hidden; }
-body { min-width: 320px; max-width: 100%; overflow-x: hidden; }
-#app { min-height: 100vh; max-width: 100%; overflow-x: clip; }
-*, *::before, *::after { box-sizing: border-box; }
-img, video, canvas, svg { max-width: 100%; }
-table { display: block; max-width: 100%; overflow-x: auto; }
-input, select, textarea { max-width: 100%; }
+@layer base {
+  html {
+    min-width: 320px;
+    overflow-x: hidden;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  body {
+    min-width: 320px;
+    max-width: 100%;
+    overflow-x: hidden;
+    color: #1e293b;
+    background-color: #f8fafc;
+  }
+  #app {
+    min-height: 100vh;
+    max-width: 100%;
+    overflow-x: clip;
+  }
+  *, *::before, *::after {
+    box-sizing: border-box;
+  }
+  img, video, canvas, svg {
+    max-width: 100%;
+  }
+  input, select, textarea {
+    max-width: 100%;
+  }
+}
+
+/* Clean scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Accessible focus styling */
+:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
