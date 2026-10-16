@@ -15,6 +15,9 @@
           <span class="sr-only">Search accounts</span>
           <input v-model="search" type="search" placeholder="Search name or username..." class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-700 placeholder:text-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100" />
         </label>
+        <button type="button" class="rounded-xl border border-blue-200 bg-white px-4 py-2.5 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-50" @click="showResidentCreateForm = !showResidentCreateForm">
+          {{ showResidentCreateForm ? 'Close resident form' : 'Add resident account' }}
+        </button>
         <button type="button" class="rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700" @click="showCreateForm = !showCreateForm">
           {{ showCreateForm ? 'Close form' : 'Add account' }}
         </button>
@@ -76,6 +79,52 @@
       </div>
     </form>
 
+    <form v-if="showResidentCreateForm" class="mb-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm" @submit.prevent="handleCreateResidentAccount">
+      <div class="mb-5">
+        <h2 class="text-lg font-bold text-slate-800">Create resident account</h2>
+        <p class="mt-1 text-sm text-slate-500">Link the account to a household in {{ barangayName }}.</p>
+      </div>
+      <div class="grid gap-4 sm:grid-cols-2">
+        <div class="sm:col-span-2">
+          <label for="resident-household" class="mb-1 block text-sm font-medium text-slate-700">Household</label>
+          <select id="resident-household" v-model="newResident.household_id" required class="form-input">
+            <option value="" disabled>Select a household</option>
+            <option v-for="household in availableHouseholds" :key="household.household_id" :value="household.household_id">
+              {{ household.household_number }} — {{ household.head_of_family }}
+            </option>
+          </select>
+          <p v-if="availableHouseholds.length === 0" class="mt-1 text-xs text-slate-500">Every household already has a resident account, or no households have been registered.</p>
+        </div>
+        <div>
+          <label for="resident-username" class="mb-1 block text-sm font-medium text-slate-700">Username</label>
+          <input id="resident-username" v-model.trim="newResident.username" required autocomplete="off" class="form-input" />
+        </div>
+        <div>
+          <label for="resident-password" class="mb-1 block text-sm font-medium text-slate-700">Temporary password</label>
+          <input id="resident-password" v-model="newResident.password" type="password" required autocomplete="new-password" class="form-input" />
+        </div>
+        <div>
+          <label for="resident-first-name" class="mb-1 block text-sm font-medium text-slate-700">First name</label>
+          <input id="resident-first-name" v-model.trim="newResident.first_name" class="form-input" />
+        </div>
+        <div>
+          <label for="resident-last-name" class="mb-1 block text-sm font-medium text-slate-700">Last name</label>
+          <input id="resident-last-name" v-model.trim="newResident.last_name" class="form-input" />
+        </div>
+        <div class="sm:col-span-2">
+          <label for="resident-email" class="mb-1 block text-sm font-medium text-slate-700">Email <span class="font-normal text-slate-400">(optional)</span></label>
+          <input id="resident-email" v-model.trim="newResident.email" type="email" class="form-input" />
+        </div>
+      </div>
+      <p v-if="residentCreateError" class="mt-4 text-sm text-red-600" role="alert">{{ residentCreateError }}</p>
+      <div class="mt-5 flex gap-3">
+        <button type="submit" :disabled="isCreatingResident || availableHouseholds.length === 0" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-blue-300">
+          {{ isCreatingResident ? 'Creating...' : 'Create resident account' }}
+        </button>
+        <button type="button" class="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200" @click="showResidentCreateForm = false">Cancel</button>
+      </div>
+    </form>
+
     <div v-if="isLoading" class="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-sm">Loading accounts...</div>
     <div v-else-if="errorMessage" class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{{ errorMessage }}</div>
     <div v-else class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -133,6 +182,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import * as authApi from '@/services/authApi'
+import * as householdsApi from '@/services/householdsApi'
 import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
@@ -141,15 +191,21 @@ const search = ref('')
 const isLoading = ref(true)
 const errorMessage = ref('')
 const showCreateForm = ref(false)
+const showResidentCreateForm = ref(false)
 const isCreating = ref(false)
 const createError = ref('')
+const isCreatingResident = ref(false)
+const residentCreateError = ref('')
 const savingStatusId = ref(null)
+const households = ref([])
 const barangayName = computed(() => authStore.user?.barangay_name || 'your barangay')
 const staffRoles = ['Barangay Secretary', 'BDRRMC Chairperson', 'Barangay Kagawad/Tanod', 'Barangay Healthworker']
 const newAccount = reactive({
   username: '', password: '', first_name: '', last_name: '', email: '',
   role: 'Barangay Kagawad/Tanod', assigned_purok: '', status: 'Active',
 })
+const newResident = reactive({ household_id: '', username: '', password: '', first_name: '', last_name: '', email: '' })
+const availableHouseholds = computed(() => households.value.filter((household) => !household.has_resident_account))
 const filteredAccounts = computed(() => {
   const term = search.value.trim().toLowerCase()
   if (!term) return accounts.value
@@ -161,6 +217,8 @@ onMounted(async () => {
   try {
     const response = await authApi.listBarangayAccounts()
     accounts.value = response.data
+    const householdResponse = await householdsApi.listHouseholds()
+    households.value = householdResponse.data
   } catch {
     errorMessage.value = 'Unable to load barangay accounts.'
   } finally {
@@ -192,6 +250,25 @@ async function handleCreateAccount() {
     createError.value = typeof data === 'object' ? Object.values(data).flat().join(' ') : 'Unable to create the account.'
   } finally {
     isCreating.value = false
+  }
+}
+
+async function handleCreateResidentAccount() {
+  isCreatingResident.value = true
+  residentCreateError.value = ''
+  try {
+    const response = await authApi.createResidentAccount({ ...newResident })
+    accounts.value.push(response.data)
+    households.value = households.value.map((household) => household.household_id === newResident.household_id
+      ? { ...household, has_resident_account: true }
+      : household)
+    Object.assign(newResident, { household_id: '', username: '', password: '', first_name: '', last_name: '', email: '' })
+    showResidentCreateForm.value = false
+  } catch (error) {
+    const data = error.response?.data
+    residentCreateError.value = data && typeof data === 'object' ? Object.values(data).flat().join(' ') : 'Unable to create the resident account.'
+  } finally {
+    isCreatingResident.value = false
   }
 }
 
