@@ -4,6 +4,14 @@ export function listAnnouncements() {
   return api.get('/announcements/')
 }
 
+export function listArchivedAnnouncements() {
+  return api.get('/announcements/archived/')
+}
+
+export function restoreAnnouncement(announcementId) {
+  return api.post(`/announcements/${announcementId}/restore/`)
+}
+
 export function getAnnouncement(announcementId) {
   return api.get(`/announcements/${announcementId}/`)
 }

@@ -4,6 +4,14 @@ export function listCenters() {
   return api.get('/evacuation-centers/')
 }
 
+export function listArchivedCenters() {
+  return api.get('/evacuation-centers/archived/')
+}
+
+export function restoreCenter(centerId) {
+  return api.post(`/evacuation-centers/${centerId}/restore/`)
+}
+
 export function getCenter(centerId) {
   return api.get(`/evacuation-centers/${centerId}/`)
 }

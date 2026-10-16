@@ -24,6 +24,7 @@ import HazardMapListView from '@/views/maps/HazardMapListView.vue'
 import HazardMapFormView from '@/views/maps/HazardMapFormView.vue'
 
 import ReportsView from '@/views/reports/ReportsView.vue'
+import ArchiveDashboardView from '@/views/ArchiveDashboardView.vue'
 import NotFoundView from '@/views/NotFoundView.vue'
 
 const routes = [
@@ -156,6 +157,12 @@ const routes = [
     component: ReportsView,
     meta: { requiresAuth: true },
   },
+  {
+    path: '/archives',
+    name: 'archives',
+    component: ArchiveDashboardView,
+    meta: { requiresAuth: true },
+  },
   { path: '/:pathMatch(.*)*', name: 'not-found', component: NotFoundView, meta: { requiresAuth: false, title: 'Page not found', description: 'The requested SAFE-ALERT page could not be found.' } },
 ]
 
@@ -183,6 +190,7 @@ const pageMeta = {
   'hazard-map-edit': ['Edit Hazard Map | SAFE-ALERT', 'Update a hazard map reference.'],
   'hazard-map-interactive': ['Interactive Hazard Map | SAFE-ALERT', 'Explore interactive hazard information.'],
   reports: ['Reports | SAFE-ALERT', 'View and download SAFE-ALERT reports.'],
+  archives: ['Archives | SAFE-ALERT', 'View and restore archived records.'],
 }
 
 const router = createRouter({

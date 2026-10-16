@@ -4,6 +4,14 @@ export function listHazardMaps() {
   return api.get('/hazard-maps/')
 }
 
+export function listArchivedHazardMaps() {
+  return api.get('/hazard-maps/archived/')
+}
+
+export function restoreHazardMap(mapId) {
+  return api.post(`/hazard-maps/${mapId}/restore/`)
+}
+
 export function getHazardMap(mapId) {
   return api.get(`/hazard-maps/${mapId}/`)
 }

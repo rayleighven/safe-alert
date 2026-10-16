@@ -1,3 +1,4 @@
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
@@ -6,6 +7,7 @@ from rest_framework.response import Response
 
 from core.choices import AuditAction, DeliveryStatus, SMSStatus, UserRole
 from core.utils import write_audit_log
+from accounts.permissions import IsBarangaySecretary
 from households.models import Household
 
 from .models import Announcement, SMSLog, SMSNotification
@@ -38,6 +40,25 @@ RECIPIENT_TYPE_TO_PRIORITY = {
 class AnnouncementViewSet(viewsets.ModelViewSet):
     serializer_class = AnnouncementSerializer
     permission_classes = [AnnouncementPermission]
+
+    def get_permissions(self):
+        if self.action in ['archived', 'restore']:
+            return [IsBarangaySecretary()]
+        return super().get_permissions()
+
+    @action(detail=False, methods=['get'])
+    def archived(self, request):
+        announcements = Announcement.objects.filter(is_archived=True, barangay=request.user.barangay).order_by('-created_at')
+        return Response(self.get_serializer(announcements, many=True).data)
+
+    @action(detail=True, methods=['post'])
+    def restore(self, request, pk=None):
+        announcement = get_object_or_404(Announcement, pk=pk, barangay=request.user.barangay, is_archived=True)
+        announcement.is_archived = False
+        announcement.archived_at = None
+        announcement.save()
+        write_audit_log(user=request.user, action=AuditAction.RESTORE, table_affected='announcements', record_id=announcement.announcement_id, request=request)
+        return Response(self.get_serializer(announcement).data, status=status.HTTP_200_OK)
 
     def get_queryset(self):
         user = self.request.user

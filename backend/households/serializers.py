@@ -36,12 +36,17 @@ class VulnerabilityIndicatorSerializer(serializers.ModelSerializer):
 class HouseholdListSerializer(serializers.ModelSerializer):
     """Lightweight serializer for list views — no nested members/indicators."""
 
+    has_resident_account = serializers.SerializerMethodField()
+
     class Meta:
         model = Household
         fields = [
             'household_id', 'household_number', 'head_of_family', 'purok',
-            'total_members', 'evacuation_priority', 'priority_score', 'barangay',
+            'total_members', 'evacuation_priority', 'priority_score', 'barangay', 'has_resident_account',
         ]
+
+    def get_has_resident_account(self, obj):
+        return bool(obj.resident_user_id)
 
 
 class HouseholdDetailSerializer(serializers.ModelSerializer):

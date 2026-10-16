@@ -4,6 +4,14 @@ export function listHouseholds() {
   return api.get('/households/')
 }
 
+export function listArchivedHouseholds() {
+  return api.get('/households/archived/')
+}
+
+export function restoreHousehold(householdId) {
+  return api.post(`/households/${householdId}/restore/`)
+}
+
 export function getHousehold(householdId) {
   return api.get(`/households/${householdId}/`)
 }

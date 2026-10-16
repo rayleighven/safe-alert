@@ -2,11 +2,13 @@
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status, viewsets
+from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.response import Response
 
 from core.choices import AuditAction, UserRole
 from core.utils import write_audit_log
+from accounts.permissions import IsBarangaySecretary
 
 from .models import Household, HouseholdMember, VulnerabilityIndicator
 from .permissions import HouseholdPermission, VulnerabilityIndicatorPermission
@@ -35,6 +37,29 @@ def _verify_resident_household_access(request, household_pk):
 
 class HouseholdViewSet(viewsets.ModelViewSet):
     permission_classes = [HouseholdPermission]
+
+    def get_permissions(self):
+        if self.action in ['archived', 'restore']:
+            return [IsBarangaySecretary()]
+        return super().get_permissions()
+
+    @action(detail=False, methods=['get'])
+    def archived(self, request):
+        households = Household.objects.filter(is_archived=True, barangay=request.user.barangay).order_by('household_number')
+        serializer = HouseholdListSerializer(households, many=True)
+        data = serializer.data
+        for record, household in zip(data, households):
+            record['archived_at'] = household.archived_at
+        return Response(data)
+
+    @action(detail=True, methods=['post'])
+    def restore(self, request, pk=None):
+        household = get_object_or_404(Household, pk=pk, barangay=request.user.barangay, is_archived=True)
+        household.is_archived = False
+        household.archived_at = None
+        household.save()
+        write_audit_log(user=request.user, action=AuditAction.RESTORE, table_affected='households', record_id=household.household_id, request=request)
+        return Response(HouseholdDetailSerializer(household).data, status=status.HTTP_200_OK)
 
     def get_serializer_class(self):
         if self.action == 'list':

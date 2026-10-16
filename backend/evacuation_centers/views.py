@@ -1,11 +1,14 @@
+from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status, viewsets
+from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
 from core.choices import AuditAction, UserRole
 from core.models import Disaster
 from core.utils import write_audit_log
+from accounts.permissions import IsBarangaySecretary
 
 from .models import EvacuationCenter, EvacuationRecord
 from .permissions import (
@@ -20,6 +23,25 @@ from .serializers import DisasterSerializer, EvacuationCenterSerializer, Evacuat
 class EvacuationCenterViewSet(viewsets.ModelViewSet):
     serializer_class = EvacuationCenterSerializer
     permission_classes = [EvacuationCenterPermission]
+
+    def get_permissions(self):
+        if self.action in ['archived', 'restore']:
+            return [IsBarangaySecretary()]
+        return super().get_permissions()
+
+    @action(detail=False, methods=['get'])
+    def archived(self, request):
+        centers = EvacuationCenter.objects.filter(is_archived=True, barangay=request.user.barangay).order_by('name')
+        return Response(self.get_serializer(centers, many=True).data)
+
+    @action(detail=True, methods=['post'])
+    def restore(self, request, pk=None):
+        center = get_object_or_404(EvacuationCenter, pk=pk, barangay=request.user.barangay, is_archived=True)
+        center.is_archived = False
+        center.archived_at = None
+        center.save()
+        write_audit_log(user=request.user, action=AuditAction.RESTORE, table_affected='evacuation_centers', record_id=center.center_id, request=request)
+        return Response(self.get_serializer(center).data, status=status.HTTP_200_OK)
 
     def get_queryset(self):
         user = self.request.user
